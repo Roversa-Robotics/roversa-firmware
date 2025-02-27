@@ -1,9 +1,12 @@
 #include "MicroBit.h"
 #include "Tests.h"
 #include "servoRoversa.h"
+#include "Buttons.h"
+#include "Images.h"
 
 #define DRIVE_TIME 1350
 #define TURN_TIME 650
+
 
 int num_actions = 0;
 char* actions = (char*)malloc(50*sizeof(char)); //hold up to 50 actions
@@ -43,11 +46,7 @@ static void printQueue(MicroBitEvent){
     }
 }
 
-//Button images:
-MicroBitImage forward_arrow("0,0,255,0,0\n0,255,255,255,0\n255,0,255,0,255\n0,0,255,0,0\n0,0,255,0,0\n");
-MicroBitImage reverse_arrow("0,0,255,0,0\n0,0,255,0,0\n255,0,255,0,255\n0,255,255,255,0\n0,0,255,0,0\n");
-MicroBitImage left_arrow("0,0,255,0,0\n0,255,0,0,0\n255,255,255,255,255\n0,255,0,0,0\n0,0,255,0,0\n");
-MicroBitImage right_arrow("0,0,255,0,0\n0,255,255,255,0\n255,0,255,0,255\n0,0,255,0,0\n0,0,255,0,0\n");
+
 
 int stop_flag=0;
 
@@ -99,8 +98,7 @@ void listen_direction(){ //synchronous event handling
     uBit.messageBus.listen(MICROBIT_ID_IO_P14, MICROBIT_BUTTON_EVT_CLICK, addReverse);
     uBit.messageBus.listen(MICROBIT_ID_IO_P16, MICROBIT_BUTTON_EVT_CLICK, addLeft);
     uBit.messageBus.listen(MICROBIT_ID_IO_P15, MICROBIT_BUTTON_EVT_CLICK, addRight);
-    uBit.messageBus.listen(MICROBIT_ID_IO_P5, MICROBIT_BUTTON_EVT_CLICK, playAll);
-    // uBit.messageBus.listen(MICROBIT_ID_IO_P9, MICROBIT_BUTTON_EVT_CLICK, stop); //504 error if try Stop button during Play (no scheduler, synchronous)
+    uBit.messageBus.listen(MICROBIT_ID_IO_P5, MICROBIT_BUTTON_EVT_CLICK, playAll); //504 error if try Stop button during Play
     uBit.messageBus.listen(MICROBIT_ID_IO_P8, MICROBIT_BUTTON_EVT_CLICK, printQueue);
     while(1){
         uBit.sleep(1000);
