@@ -10,9 +10,12 @@
 
 int num_actions = 0;
 char* actions = (char*)malloc(50*sizeof(char)); //hold up to 50 actions
+int stop_flag=0;
+int pause_flag=-1;
 
 void updateQueue(int pin){
     if(pin==MICROBIT_ID_IO_P13){
+        // uBit.serial.printf("adding a Forward\n");
         actions[num_actions]='F';
     }
     else if(pin==MICROBIT_ID_IO_P14){
@@ -41,56 +44,85 @@ static void addRight(MicroBitEvent){
 }
 
 static void printQueue(MicroBitEvent){
-    for(int i=0;i<num_actions;i++){
-        uBit.serial.printf("action: %c\n",actions[i]);
+    if(*actions=='\0'){
+        uBit.serial.printf("No actions in queue\n");
     }
+    else{
+        char *actionsCopy = actions;
+        while(*actionsCopy!='\0'){
+            uBit.serial.printf("%c\n",*actionsCopy);
+            actionsCopy+=1;
+        }
+    }
+    
 }
 
 
-
-int stop_flag=0;
-
 static void playAll(MicroBitEvent){
-    for(int i=0;i<num_actions;i++){
-        if(stop_flag == 1){
-            uBit.serial.printf("full stop\n");
+    while(*actions!='\0'){
+        if(pause_flag==1){
             break;
         }
-        else if(actions[i]=='F'){
+        else if(*actions=='F'){
             uBit.display.print(forward_arrow);
             forward(100,100);
-            uBit.sleep(DRIVE_TIME); //do nothing/allow to drive for DRIVE_TIME
+            uBit.sleep(DRIVE_TIME); //do nothing, allow to drive for DRIVE_TIME
             stop();
             uBit.display.clear();
         }
-        else if(actions[i]=='B'){
+        else if(*actions=='B'){
             uBit.display.print(reverse_arrow);
             reverse(100,100);
             uBit.sleep(DRIVE_TIME);
             stop();
             uBit.display.clear();
         }
-        else if(actions[i]=='L'){
+        else if(*actions=='L'){
             uBit.display.print(left_arrow);
             left(100,100);
             uBit.sleep(TURN_TIME);
             stop();
             uBit.display.clear();
         }
-        else if(actions[i]=='R'){
+        else if(*actions=='R'){
             uBit.display.print(right_arrow);
             right(100,100);
             uBit.sleep(TURN_TIME);
             stop();
             uBit.display.clear();
         }
+        actions+=1; //iterate through commands
+        num_actions-=1; //num remaining decremented
         uBit.sleep(1000);//take a break between actions
     }
-    free(actions); //done executing all actions
+    if(num_actions==0||stop_flag==1){ //exited loop because finished all actions, or terminated. Condition necessary so not resetting flag during an actual pause
+        pause_flag=-1;
+        stop_flag=0;
+    }
+    //clear program outside of execution for loop because don't want for loop time to stall halting execution
+
+    // free(actions); //done executing all actions
 }
 
-static void stop(MicroBitEvent){
-    stop_flag = 1;
+static void stopHandler(MicroBitEvent){
+    if(pause_flag>-1){
+        stop_flag = 1; //means program stopped after running
+    }
+    for(int i=0;i<num_actions;i++){
+        actions[i] = '\0'; //clear all actions in program
+    }
+    num_actions = 0; //clear program
+}
+
+static void playHandler(MicroBitEvent){ //possibly call playHandler as a void() instead of another event --> ensure playHandler always before playAll, not concurrent
+    if(pause_flag==1){
+        pause_flag=0;
+    }
+    else{
+        if(num_actions>0){ //don't let messing with play button on empty program mess with flag
+            pause_flag+=1; //set flag
+        }
+    }
 }
 
 void listen_direction(){ //synchronous event handling
@@ -112,7 +144,8 @@ void fiber_scheduler(){ //asynchronous event handling
     uBit.messageBus.listen(MICROBIT_ID_IO_P16, MICROBIT_BUTTON_EVT_CLICK, addLeft);
     uBit.messageBus.listen(MICROBIT_ID_IO_P15, MICROBIT_BUTTON_EVT_CLICK, addRight);
     uBit.messageBus.listen(MICROBIT_ID_IO_P5, MICROBIT_BUTTON_EVT_CLICK, playAll);
-    uBit.messageBus.listen(MICROBIT_ID_IO_P9, MICROBIT_BUTTON_EVT_CLICK, stop); //can interrupt playAll
+    uBit.messageBus.listen(MICROBIT_ID_IO_P5, MICROBIT_BUTTON_EVT_CLICK, playHandler);
+    uBit.messageBus.listen(MICROBIT_ID_IO_P9, MICROBIT_BUTTON_EVT_CLICK, stopHandler); //can interrupt playAll
     uBit.messageBus.listen(MICROBIT_ID_IO_P8, MICROBIT_BUTTON_EVT_CLICK, printQueue); //menu prints queue
     
     while(1){
