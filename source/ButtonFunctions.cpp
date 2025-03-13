@@ -61,14 +61,11 @@ static void printQueue(MicroBitEvent){
 
 
 static void playAll(MicroBitEvent){
-    while(*actions!='\0'){
-        if(pause_flag==1||stop_flag==1){
-            break;
-        }
-        else if(*actions=='F'){
+    while(*actions!='\0' && pause_flag==0){ //only play actions if queue not empty, not paused
+        if(*actions=='F'){
             uBit.display.print(forward_arrow);
             forward(100,100);
-            uBit.sleep(DRIVE_TIME); //do nothing, allow to drive for DRIVE_TIME
+            uBit.sleep(DRIVE_TIME);
             stop();
             uBit.display.clear();
         }
@@ -94,39 +91,28 @@ static void playAll(MicroBitEvent){
             uBit.display.clear();
         }
         actions+=1; //iterate through commands
-        num_actions-=1; //num remaining decremented
-        uBit.sleep(1000);//take a break between actions
+        num_actions-=1; //num actions remaining decremented
+        uBit.sleep(1000);
     }
-    if(num_actions==0||stop_flag==1){ //exited loop because finished all actions, or terminated. Condition necessary so not resetting flag during an actual pause
-        uBit.serial.printf("Resetting flag\n");
-        pause_flag=-1;
-        stop_flag=0;
-    }
-    uBit.serial.printf("Pause flag:%d\n",pause_flag);
-    uBit.serial.printf("Stop flag:%d\n",stop_flag);
-}
-
-static void stopHandler(MicroBitEvent){
-    if(pause_flag==0){
-        stop_flag = 1; //means program stopped after running
-    }
-    for(int i=0;i<num_actions;i++){
-        actions[i] = '\0'; //clear all actions in program
-    }
-    num_actions = 0; //clear program
+    // all actions executed, reset flag for next program
     pause_flag=-1;
-    uBit.serial.printf("Stop handler\n");
-    uBit.serial.printf("Pause flag:%d\n",pause_flag);
-    uBit.serial.printf("Stop flag:%d\n",stop_flag);
 }
 
-static void playHandler(MicroBitEvent){ //possibly call playHandler as a void() instead of another event --> ensure playHandler always before playAll, not concurrent
+static void stopHandler(MicroBitEvent){ //clear program, reset flags (whether or not program running)
+    for(int i=0;i<num_actions;i++){
+        actions[i] = '\0'; //no actions in playAll will match
+    }
+    num_actions = 0;
+    pause_flag=-1;
+}
+
+static void playHandler(MicroBitEvent){
     if(pause_flag==1){
         pause_flag=0;
     }
     else{
-        if(num_actions>0){ //don't let messing with play button on empty program mess with flag
-            pause_flag+=1; //set flag
+        if(num_actions>0){ //don't let play presses b/w empty queues mess with flag
+            pause_flag+=1; //set flag if queue has actions to do
         }
     }
 }
