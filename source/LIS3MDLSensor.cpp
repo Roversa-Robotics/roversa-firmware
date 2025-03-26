@@ -1,12 +1,5 @@
-/**
- ******************************************************************************
- * @file    LIS3MDLSensor.cpp (Microbit-compatible rewrite)
- * @brief   Implementation of LIS3MDL magnetometer sensor using MicroBitI2C
- ******************************************************************************
- */
-
- #include "LIS3MDLSensor.h"
- #include "MicroBit.h"
+#include "LIS3MDLSensor.h"
+#include "MicroBit.h"
  
  extern MicroBit uBit; // External reference to MicroBit instance
  
@@ -146,19 +139,14 @@
      return (LIS3MDL_IO_Write(this, reg, &data, 1) == 0) ? LIS3MDL_STATUS_OK : LIS3MDL_STATUS_ERROR;
  }
  
- uint8_t LIS3MDL_IO_Read(void* handle, uint8_t reg, uint8_t* pBuffer, uint16_t len) {
-     if (!handle || !pBuffer) return 1;
-     LIS3MDLSensor* sensor = static_cast<LIS3MDLSensor*>(handle);
-     uBit.i2c.write(sensor->address, &reg, 1, true);
-     return uBit.i2c.read(sensor->address, pBuffer, len);
- }
- 
- uint8_t LIS3MDL_IO_Write(void* handle, uint8_t reg, uint8_t* pBuffer, uint16_t len) {
-     if (!handle || !pBuffer) return 1;
-     LIS3MDLSensor* sensor = static_cast<LIS3MDLSensor*>(handle);
-     uint8_t buffer[len + 1];
-     buffer[0] = reg;
-     for (uint16_t i = 0; i < len; i++) buffer[i + 1] = pBuffer[i];
-     return uBit.i2c.write(sensor->address, buffer, len + 1);
- }
+ // TODO: Finish Writing
+ uint8_t LIS3MDL_IO_Write( void *handle, uint8_t WriteAddr, uint8_t *pBuffer, uint16_t nBytesToWrite )
+{
+  return ((LIS3MDLSensor *)handle)->IO_Write(pBuffer, WriteAddr, nBytesToWrite);
+}
+
+uint8_t LIS3MDL_IO_Read( void *handle, uint8_t ReadAddr, uint8_t *pBuffer, uint16_t nBytesToRead )
+{
+  return ((LIS3MDLSensor *)handle)->IO_Read(pBuffer, ReadAddr, nBytesToRead);
+}
  

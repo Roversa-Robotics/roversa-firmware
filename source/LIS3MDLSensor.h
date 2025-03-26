@@ -1,17 +1,11 @@
-/**
- ******************************************************************************
- * @file    LIS3MDLSensor.h (Microbit-compatible rewrite)
- * @author  (adapted)
- * @brief   Header for LIS3MDL Magnetometer Sensor (Microbit-compatible)
- ******************************************************************************
- */
-
  #ifndef __LIS3MDLSensor_H__
  #define __LIS3MDLSensor_H__
  
  #include "MicroBit.h"
  #include "LIS3MDL_MAG_Driver.h"
  
+ extern MicroBit uBit;
+
  #define LIS3MDL_MAG_SENSITIVITY_FOR_FS_4G   0.14f
  #define LIS3MDL_MAG_SENSITIVITY_FOR_FS_8G   0.29f
  #define LIS3MDL_MAG_SENSITIVITY_FOR_FS_12G  0.43f
@@ -43,7 +37,15 @@
      LIS3MDLStatusTypeDef ReadReg(uint8_t reg, uint8_t *data);
      LIS3MDLStatusTypeDef WriteReg(uint8_t reg, uint8_t data);
 
- private:
+     // TODO: Complete
+     uint8_t IO_Read(uint8_t* pBuffer, uint8_t RegisterAddr, uint16_t NumByteToRead) {
+      
+     }
+     uint8_t IO_Write(uint8_t* pBuffer, uint8_t RegisterAddr, uint16_t NumByteToWrite) {
+
+     }
+
+  private:
      MicroBitI2C* dev_i2c;
      uint8_t address;
  };
