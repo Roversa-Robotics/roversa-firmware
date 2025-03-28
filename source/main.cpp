@@ -5,12 +5,12 @@ MicroBit uBit;
 
 int main()
 {
-    uBit.init();
-    
+    uBit.init(); //leaving in because also calling uBit.display
+    scheduler_init(uBit.messageBus);
     fiber_scheduler();
 
-    // out_of_box_experience();
-
-    // microbit_panic( 999 );
+    while(1){
+        fiber_sleep(1000);
+    }
 }
 

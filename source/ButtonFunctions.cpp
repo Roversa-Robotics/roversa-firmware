@@ -15,18 +15,20 @@ int stop_flag=0;
 int pause_flag=-1;
 
 void updateQueue(int pin){
-    if(num_actions<ACTIONS_LIMIT){
-        if(pin==MICROBIT_ID_IO_P13){
-            actions[num_actions]='F';
-        }
-        else if(pin==MICROBIT_ID_IO_P14){
-            actions[num_actions]='B'; //B for back/reverse
-        }
-        else if(pin==MICROBIT_ID_IO_P16){
-            actions[num_actions]='L';
-        }
-        else if(pin==MICROBIT_ID_IO_P15){
-            actions[num_actions]='R'; 
+    if(num_actions<ACTIONS_LIMIT && pause_flag==-1){ //can't add after start playing(0) or paused(1). If want to allow update during pause, change condition to !=0
+        switch(pin) {
+            case MICROBIT_ID_IO_P13:
+                actions[num_actions]='F';
+                break;
+            case MICROBIT_ID_IO_P14:
+                actions[num_actions]='B';
+                break;
+            case MICROBIT_ID_IO_P16:
+                actions[num_actions]='L';
+                break;
+            case MICROBIT_ID_IO_P15:
+                actions[num_actions]='R';
+                break;
         }
         num_actions+=1;
     }
@@ -62,43 +64,48 @@ static void printQueue(MicroBitEvent){
 
 static void playAll(MicroBitEvent){
     while(*actions!='\0' && pause_flag==0){ //only play actions if queue not empty, not paused
-        if(*actions=='F'){
-            uBit.display.print(forward_arrow);
-            forward(100,100);
-            uBit.sleep(DRIVE_TIME);
-            stop();
-            uBit.display.clear();
-        }
-        else if(*actions=='B'){
-            uBit.display.print(reverse_arrow);
-            reverse(100,100);
-            uBit.sleep(DRIVE_TIME);
-            stop();
-            uBit.display.clear();
-        }
-        else if(*actions=='L'){
-            uBit.display.print(left_arrow);
-            left(100,100);
-            uBit.sleep(TURN_TIME);
-            stop();
-            uBit.display.clear();
-        }
-        else if(*actions=='R'){
-            uBit.display.print(right_arrow);
-            right(100,100);
-            uBit.sleep(TURN_TIME);
-            stop();
-            uBit.display.clear();
+        switch(*actions) {
+            case 'F':
+                uBit.display.print(forward_arrow);
+                forward(100,100);
+                fiber_sleep(DRIVE_TIME);
+                stop();
+                uBit.display.clear();
+                break;
+            case 'B':
+                uBit.display.print(reverse_arrow);
+                reverse(100,100);
+                fiber_sleep(DRIVE_TIME);
+                stop();
+                uBit.display.clear();
+                break;
+            case 'L':
+                uBit.display.print(left_arrow);
+                left(100,100);
+                fiber_sleep(TURN_TIME);
+                stop();
+                uBit.display.clear();
+                break;
+            case 'R':
+                uBit.display.print(right_arrow);
+                right(100,100);
+                fiber_sleep(TURN_TIME);
+                stop();
+                uBit.display.clear();
+                break;
         }
         actions+=1; //iterate through commands
         num_actions-=1; //num actions remaining decremented
-        uBit.sleep(1000);
+        fiber_sleep(1000);
     }
-    // all actions executed, reset flag for next program
-    pause_flag=-1;
+    if(pause_flag==0){
+        pause_flag=-1; // was in play (0), now all actions executed, reset flag for next program
+    }
+    
 }
 
 static void stopHandler(MicroBitEvent){ //clear program, reset flags (whether or not program running)
+    stop();
     for(int i=0;i<num_actions;i++){
         actions[i] = '\0'; //no actions in playAll will match
     }
@@ -118,7 +125,6 @@ static void playHandler(MicroBitEvent){
 }
 
 void fiber_scheduler(){ //asynchronous event handling
-    scheduler_init(uBit.messageBus);
     uBit.messageBus.listen(MICROBIT_ID_IO_P13, MICROBIT_BUTTON_EVT_CLICK, addForward);
     uBit.messageBus.listen(MICROBIT_ID_IO_P14, MICROBIT_BUTTON_EVT_CLICK, addReverse);
     uBit.messageBus.listen(MICROBIT_ID_IO_P16, MICROBIT_BUTTON_EVT_CLICK, addLeft);
@@ -127,8 +133,4 @@ void fiber_scheduler(){ //asynchronous event handling
     uBit.messageBus.listen(MICROBIT_ID_IO_P5, MICROBIT_BUTTON_EVT_CLICK, playHandler);
     uBit.messageBus.listen(MICROBIT_ID_IO_P9, MICROBIT_BUTTON_EVT_CLICK, stopHandler); //can interrupt playAll
     uBit.messageBus.listen(MICROBIT_ID_IO_P8, MICROBIT_BUTTON_EVT_CLICK, printQueue); //menu prints queue
-    
-    while(1){
-        fiber_sleep(1000);
-    }
 }
