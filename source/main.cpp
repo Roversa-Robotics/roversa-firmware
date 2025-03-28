@@ -58,7 +58,8 @@ void printFloat(float value, int step) {
 // Moves the terminal cursor up by the given number of lines
 void moveCursorUp(int lines) {
     for (int i = 0; i < lines; i++) {
-        uBit.serial.printf("\x1b[A");
+        uBit.serial.printf("\x1b[A");   // Move cursor up
+        uBit.serial.printf("\r\x1b[2K"); // Return to start of line and clear it
     }
 }
 
@@ -107,7 +108,7 @@ int main() {
         if (startMagStream) {
             moveCursorUp(3);
             printMag();
-            uBit.sleep(10);
+            uBit.sleep(100);
         } else {
             uBit.sleep(100);
         }

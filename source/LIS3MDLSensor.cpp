@@ -139,14 +139,13 @@
      return (LIS3MDL_IO_Write(this, reg, &data, 1) == 0) ? LIS3MDL_STATUS_OK : LIS3MDL_STATUS_ERROR;
  }
  
- // TODO: Finish Writing
+ uint8_t LIS3MDL_IO_Read( void *handle, uint8_t ReadAddr, uint8_t *pBuffer, uint16_t nBytesToRead )
+ {
+   return ((LIS3MDLSensor *)handle)->IO_Read(pBuffer, ReadAddr, nBytesToRead);
+ }
+
  uint8_t LIS3MDL_IO_Write( void *handle, uint8_t WriteAddr, uint8_t *pBuffer, uint16_t nBytesToWrite )
 {
   return ((LIS3MDLSensor *)handle)->IO_Write(pBuffer, WriteAddr, nBytesToWrite);
-}
-
-uint8_t LIS3MDL_IO_Read( void *handle, uint8_t ReadAddr, uint8_t *pBuffer, uint16_t nBytesToRead )
-{
-  return ((LIS3MDLSensor *)handle)->IO_Read(pBuffer, ReadAddr, nBytesToRead);
 }
  
