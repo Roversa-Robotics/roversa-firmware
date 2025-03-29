@@ -48,19 +48,19 @@ static void addRight(MicroBitEvent){
 }
 
 static void printQueue(MicroBitEvent){
-    if(*actions=='\0'){
-        uBit.serial.printf("No actions in queue\n");
-    }
-    else{
-        char *actionsCopy = actions;
-        while(*actionsCopy!='\0'){
-            uBit.serial.printf("%c\n",*actionsCopy);
-            actionsCopy+=1;
+    if(pause_flag!=0){ //can view menu if before, after, or paused program
+        if(*actions=='\0'){
+            uBit.serial.printf("No actions in queue\n");
+        }
+        else{
+            char *actionsCopy = actions;
+            while(*actionsCopy!='\0'){
+                uBit.serial.printf("%c\n",*actionsCopy);
+                actionsCopy+=1;
+            }
         }
     }
-    
 }
-
 
 static void playAll(MicroBitEvent){
     while(*actions!='\0' && pause_flag==0){ //only play actions if queue not empty, not paused
@@ -99,18 +99,8 @@ static void playAll(MicroBitEvent){
         fiber_sleep(1000);
     }
     if(pause_flag==0){
-        pause_flag=-1; // was in play (0), now all actions executed, reset flag for next program
+        pause_flag=-1; // was in play (0), program just completed, reset flag for next program
     }
-    
-}
-
-static void stopHandler(MicroBitEvent){ //clear program, reset flags (whether or not program running)
-    stop();
-    for(int i=0;i<num_actions;i++){
-        actions[i] = '\0'; //no actions in playAll will match
-    }
-    num_actions = 0;
-    pause_flag=-1;
 }
 
 static void playHandler(MicroBitEvent){
@@ -124,6 +114,15 @@ static void playHandler(MicroBitEvent){
     }
 }
 
+static void stopHandler(MicroBitEvent){ //clear program, reset flags (whether or not program running)
+    stop();
+    for(int i=0;i<num_actions;i++){
+        actions[i] = '\0'; //no actions in playAll will match
+    }
+    num_actions = 0;
+    pause_flag=-1;
+}
+
 void fiber_scheduler(){ //asynchronous event handling
     uBit.messageBus.listen(MICROBIT_ID_IO_P13, MICROBIT_BUTTON_EVT_CLICK, addForward);
     uBit.messageBus.listen(MICROBIT_ID_IO_P14, MICROBIT_BUTTON_EVT_CLICK, addReverse);
@@ -131,6 +130,6 @@ void fiber_scheduler(){ //asynchronous event handling
     uBit.messageBus.listen(MICROBIT_ID_IO_P15, MICROBIT_BUTTON_EVT_CLICK, addRight);
     uBit.messageBus.listen(MICROBIT_ID_IO_P5, MICROBIT_BUTTON_EVT_CLICK, playAll);
     uBit.messageBus.listen(MICROBIT_ID_IO_P5, MICROBIT_BUTTON_EVT_CLICK, playHandler);
-    uBit.messageBus.listen(MICROBIT_ID_IO_P9, MICROBIT_BUTTON_EVT_CLICK, stopHandler); //can interrupt playAll
-    uBit.messageBus.listen(MICROBIT_ID_IO_P8, MICROBIT_BUTTON_EVT_CLICK, printQueue); //menu prints queue
+    uBit.messageBus.listen(MICROBIT_ID_IO_P9, MICROBIT_BUTTON_EVT_CLICK, stopHandler, MESSAGE_BUS_LISTENER_IMMEDIATE);
+    uBit.messageBus.listen(MICROBIT_ID_IO_P8, MICROBIT_BUTTON_EVT_CLICK, printQueue);
 }
