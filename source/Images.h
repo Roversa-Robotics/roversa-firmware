@@ -7,5 +7,6 @@ extern MicroBitImage forward_arrow;
 extern MicroBitImage reverse_arrow;
 extern MicroBitImage left_arrow;
 extern MicroBitImage right_arrow;
+extern MicroBitImage stop_sign;
 
 #endif

@@ -109,6 +109,10 @@ static void playHandler(MicroBitEvent){
     }
     else{
         if(num_actions>0){ //don't let play presses b/w empty queues mess with flag
+            if(pause_flag==-1){ //initial play
+                uBit.display.scrollAsync("Go!");
+                uBit.display.clear();
+            }
             pause_flag+=1; //set flag if queue has actions to do
         }
     }
@@ -116,6 +120,7 @@ static void playHandler(MicroBitEvent){
 
 static void stopHandler(MicroBitEvent){ //clear program, reset flags (whether or not program running)
     stop();
+    uBit.display.print(stop_sign);
     for(int i=0;i<num_actions;i++){
         actions[i] = '\0'; //no actions in playAll will match
     }
