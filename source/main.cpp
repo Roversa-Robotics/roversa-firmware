@@ -1,23 +1,27 @@
 #include "MicroBit.h"
-// #include "LSM6DS3Sensor.h"
 #include "LIS3MDLSensor.h"
+#include "LSM6DS3Sensor.h"
 
 #include <cmath>
 #include <cstdint>
 
+// Microbit
 MicroBit uBit;
-// LSM6DS3Sensor imu(&uBit.i2c, 0x6A);
-LIS3MDLSensor mag(&uBit.i2c, 0x1E);
-bool startMagStream = false;
 
-// Round a float to a specified number of decimal places
+// IMU
+LSM6DS3Sensor accgyro(&uBit.i2c, 0x6A);
+LIS3MDLSensor mag(&uBit.i2c, 0x1E);
+
+// Internal
+bool startStream = false;
+
+// Helper Functions
 float round(float value, int step) {
     float multiplier = 1;
     for (int i = 0; i < step; i++) multiplier *= 10;
     return (int)(value * multiplier + 0.5f) / multiplier;
 }
 
-// Convert float to character array for serial printing
 void floatToChar(float value, char* buffer, int step) {
     value = round(value, step);
     int integerPart = (int)value;
@@ -48,14 +52,12 @@ void floatToChar(float value, char* buffer, int step) {
     buffer[bufferIndex] = '\0';
 }
 
-// Helper to print formatted float values
 void printFloat(float value, int step) {
     char buffer[12];
     floatToChar(value, buffer, step);
     uBit.serial.printf("%s", buffer);
 }
 
-// Moves the terminal cursor up by the given number of lines
 void moveCursorUp(int lines) {
     for (int i = 0; i < lines; i++) {
         uBit.serial.printf("\x1b[A");   // Move cursor up
@@ -63,51 +65,93 @@ void moveCursorUp(int lines) {
     }
 }
 
-// Print magnetometer values with optional precision control
-void printMag(int step = 3) {
-    int32_t axes[3];
-    if (mag.GetAxes(axes) != LIS3MDL_STATUS_OK) {
-        uBit.serial.printf("Mag read failed\r\n");
+// IMU
+void initIMU() {
+    // Gyroscope and Accelerometer
+    if (accgyro.begin() != 0) {
+        uBit.serial.printf("Accelerometer / Gyroscope initialization failed\r\n");
         return;
     }
-    uBit.serial.printf("Mag (uT): [");
-    for (int i = 0; i < 3; i++) {
-        printFloat((float)axes[i], step);
-        uBit.serial.printf(i < 2 ? ", " : "");
-    }
-    uBit.serial.printf("]\r\n");
-}
+    accgyro.Enable_X();
+    accgyro.Enable_G();
 
-// Initializes the magnetometer
-void testMag() {
+    // Magnetometer
     if (mag.begin() != 0) {
         uBit.serial.printf("Magnetometer initialization failed\r\n");
         return;
     }
+    mag.Enable_G();
+}
 
-    mag.Enable();
-    mag.SetFS(4.0f);
-    mag.SetODR(80.0f);
+void printAxes(int32_t* pData) {
+    uBit.serial.printf("[");
+    for (int i = 0; i < 3; i++) {
+        uBit.serial.printf("%d", pData[i]);
+        uBit.serial.printf(i < 2 ? ", " : "]");
+    }
+}
 
-    uBit.serial.printf("Magnetometer initialized. Press A to start streaming.\r\n\r\n\r\n");
+void printAcc() {
+    int32_t axes[3];
+    if (accgyro.Get_X_Axes(axes) != LSM6DS3_STATUS_OK) {
+        uBit.serial.printf("Acc read failed\r\n");
+        return;
+    }
+    uBit.serial.printf("Acc (g): ");
+    printAxes(axes);
+    uBit.serial.printf("\r\n");
+}
+
+void printGyro() {
+    int32_t axes[3];
+    if (accgyro.Get_G_Axes(axes) != LSM6DS3_STATUS_OK) {
+        uBit.serial.printf("Gyro read failed\r\n");
+        return;
+    }
+    uBit.serial.printf("Gyro (dps): ");
+    printAxes(axes);
+    uBit.serial.printf("\r\n");
+}
+
+void printMag() {
+    int32_t axes[3];
+    if (mag.Get_G_Axes(axes) != LSM6DS3_STATUS_OK) {
+        uBit.serial.printf("Mag read failed\r\n");
+        return;
+    }
+    uBit.serial.printf("Mag (uT): ");
+    printAxes(axes);
+    uBit.serial.printf("\r\n");
+}
+
+void printIMU() {
+    printAcc();
+    printGyro();
+    printMag();
 }
 
 // Button A event handler
 static void onButtonA(MicroBitEvent) {
     // calibrate();
-    startMagStream = true;
+    startStream = true;
 }
 
 int main() {
     uBit.init();
-    testMag();
 
+    // Test out the IMU Components
+    initIMU();
+
+    // Listen for the A Button
     uBit.messageBus.listen(MICROBIT_ID_BUTTON_A, MICROBIT_BUTTON_EVT_CLICK, onButtonA);
+    
+    // Print Statement
+    uBit.serial.printf("IMU initialized. Press A to start streaming.");
 
     while (true) {
-        if (startMagStream) {
-            moveCursorUp(3);
-            printMag();
+        if (startStream) {
+            moveCursorUp(5);
+            printIMU();
             uBit.sleep(100);
         } else {
             uBit.sleep(100);
