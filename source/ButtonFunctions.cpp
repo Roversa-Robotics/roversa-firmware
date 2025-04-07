@@ -10,17 +10,13 @@
 
 
 int num_actions = 0;
-char* actions = (char*)malloc(ACTIONS_LIMIT*sizeof(char));
+char * actions = (char*)malloc(ACTIONS_LIMIT*sizeof(char));
+char * actionsCopy;
 int stop_flag=0;
 int pause_flag=-1;
 
 void updateQueue(int pin){
-    uBit.serial.printf("updateQueue:\n");
-    uBit.serial.printf("num_actions:%d\n",num_actions);
-    uBit.serial.printf("pause_flag:%d\n",pause_flag);
     if(num_actions<ACTIONS_LIMIT && pause_flag==-1){ //can't add after start playing(0) or paused(1). If want to allow update during pause, change condition to !=0
-        uBit.serial.printf("Check actions[] after prev program\n");
-        uBit.serial.printf("actions[num_actions]: %s\n", actions[num_actions]);
         switch(pin) {
             case MICROBIT_ID_IO_P13:
                 actions[num_actions]='F';
@@ -58,7 +54,7 @@ static void printQueue(MicroBitEvent){
             uBit.serial.printf("No actions in queue\n");
         }
         else{
-            char *actionsCopy = actions;
+            char *actionsCopy = actions; //prints full queue for now, not printing global actionsCopy in case print called before initialized with initial play
             while(*actionsCopy!='\0'){
                 uBit.serial.printf("%c\n",*actionsCopy);
                 actionsCopy+=1;
@@ -68,8 +64,8 @@ static void printQueue(MicroBitEvent){
 }
 
 static void playAll(MicroBitEvent){
-    while(*actions!='\0' && pause_flag==0){ //only play actions if queue not empty, not paused
-        switch(*actions) {
+    while(*actionsCopy!='\0' && pause_flag==0){ //only play actions if queue not empty, not paused
+        switch(*actionsCopy) {
             case 'F':
                 uBit.display.print(forward_arrow);
                 forward(100,100);
@@ -99,11 +95,15 @@ static void playAll(MicroBitEvent){
                 uBit.display.clear();
                 break;
         }
-        actions+=1; //iterate through commands
+        actionsCopy+=1; //iterate through commands
         fiber_sleep(1000);
     }
+
     if(pause_flag==0){
         pause_flag=-1; // was in play (0), program just completed, reset flag for next program
+        for(int i=0;i<num_actions;i++){
+            actions[i] = '\0';
+        }
         num_actions = 0;
     }
 }
@@ -114,6 +114,9 @@ static void playHandler(MicroBitEvent){
     }
     else{
         if(num_actions>0){ //don't let play presses b/w empty queues mess with flag
+            if(pause_flag==-1){
+                actionsCopy = actions;
+            }
             pause_flag+=1; //set flag if queue has actions to do
         }
     }
@@ -121,9 +124,8 @@ static void playHandler(MicroBitEvent){
 
 static void stopHandler(MicroBitEvent){ //clear program, reset flags (whether or not program running)
     stop();
-    uBit.serial.printf("stop, num_actions: %d",num_actions);
     for(int i=0;i<num_actions;i++){
-        actions[i] = 'c'; //no actions in playAll will match
+        actions[i] = '\0'; //no actions in playAll will match
     }
     num_actions = 0;
     pause_flag=-1;
@@ -136,6 +138,6 @@ void fiber_scheduler(){ //asynchronous event handling
     uBit.messageBus.listen(MICROBIT_ID_IO_P15, MICROBIT_BUTTON_EVT_CLICK, addRight);
     uBit.messageBus.listen(MICROBIT_ID_IO_P5, MICROBIT_BUTTON_EVT_CLICK, playAll);
     uBit.messageBus.listen(MICROBIT_ID_IO_P5, MICROBIT_BUTTON_EVT_CLICK, playHandler);
-    uBit.messageBus.listen(MICROBIT_ID_IO_P9, MICROBIT_BUTTON_EVT_CLICK, stopHandler);
+    uBit.messageBus.listen(MICROBIT_ID_IO_P9, MICROBIT_BUTTON_EVT_CLICK, stopHandler, MESSAGE_BUS_LISTENER_IMMEDIATE);
     uBit.messageBus.listen(MICROBIT_ID_IO_P8, MICROBIT_BUTTON_EVT_CLICK, printQueue);
 }
