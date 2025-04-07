@@ -97,7 +97,7 @@ void printAcc() {
         uBit.serial.printf("Acc read failed\r\n");
         return;
     }
-    uBit.serial.printf("Acc (g): ");
+    uBit.serial.printf("Acc (mg): ");
     printAxes(axes);
     uBit.serial.printf("\r\n");
 }
@@ -108,7 +108,7 @@ void printGyro() {
         uBit.serial.printf("Gyro read failed\r\n");
         return;
     }
-    uBit.serial.printf("Gyro (dps): ");
+    uBit.serial.printf("Gyro (mdps): ");
     printAxes(axes);
     uBit.serial.printf("\r\n");
 }
@@ -119,7 +119,7 @@ void printMag() {
         uBit.serial.printf("Mag read failed\r\n");
         return;
     }
-    uBit.serial.printf("Mag (uT): ");
+    uBit.serial.printf("Mag (mGauss): ");
     printAxes(axes);
     uBit.serial.printf("\r\n");
 }
