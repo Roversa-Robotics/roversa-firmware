@@ -14,10 +14,10 @@
      if (LIS3MDL_MAG_W_BlockDataUpdate(this, LIS3MDL_MAG_BDU_ENABLE) == MEMS_ERROR)
          return LIS3MDL_STATUS_ERROR;
  
-     if (Set_G_ODR(80.0f) == LIS3MDL_STATUS_ERROR)
+     if (Set_M_ODR(80.0f) == LIS3MDL_STATUS_ERROR)
          return LIS3MDL_STATUS_ERROR;
  
-     if (Set_G_FS(4.0f) == LIS3MDL_STATUS_ERROR)
+     if (Set_M_FS(4.0f) == LIS3MDL_STATUS_ERROR)
          return LIS3MDL_STATUS_ERROR;
  
      if (LIS3MDL_MAG_W_OperatingModeXY(this, LIS3MDL_MAG_OM_HIGH) == MEMS_ERROR)
@@ -30,15 +30,15 @@
  }
  
  LIS3MDLStatusTypeDef LIS3MDLSensor::end() {
-     return (Disable_G() == LIS3MDL_STATUS_OK) ? LIS3MDL_STATUS_OK : LIS3MDL_STATUS_ERROR;
+     return (Disable_M() == LIS3MDL_STATUS_OK) ? LIS3MDL_STATUS_OK : LIS3MDL_STATUS_ERROR;
  }
  
- LIS3MDLStatusTypeDef LIS3MDLSensor::Enable_G() {
+ LIS3MDLStatusTypeDef LIS3MDLSensor::Enable_M() {
      return (LIS3MDL_MAG_W_SystemOperatingMode(this, LIS3MDL_MAG_MD_CONTINUOUS) == MEMS_ERROR)
          ? LIS3MDL_STATUS_ERROR : LIS3MDL_STATUS_OK;
  }
  
- LIS3MDLStatusTypeDef LIS3MDLSensor::Disable_G() {
+ LIS3MDLStatusTypeDef LIS3MDLSensor::Disable_M() {
      return (LIS3MDL_MAG_W_SystemOperatingMode(this, LIS3MDL_MAG_MD_POWER_DOWN) == MEMS_ERROR)
          ? LIS3MDL_STATUS_ERROR : LIS3MDL_STATUS_OK;
  }
@@ -48,23 +48,23 @@
      return (LIS3MDL_MAG_R_WHO_AM_I_(this, p_id) == MEMS_ERROR) ? LIS3MDL_STATUS_ERROR : LIS3MDL_STATUS_OK;
  }
  
- LIS3MDLStatusTypeDef LIS3MDLSensor::Get_G_Axes(int32_t* pData) {
+ LIS3MDLStatusTypeDef LIS3MDLSensor::Get_M_Axes(int32_t* pData) {
      int16_t raw[3];
      float sensitivity = 0;
-     if (Get_G_AxesRaw(raw) == LIS3MDL_STATUS_ERROR || Get_G_Sensitivity(&sensitivity) == LIS3MDL_STATUS_ERROR)
+     if (Get_M_AxesRaw(raw) == LIS3MDL_STATUS_ERROR || Get_M_Sensitivity(&sensitivity) == LIS3MDL_STATUS_ERROR)
          return LIS3MDL_STATUS_ERROR;
      for (int i = 0; i < 3; i++) pData[i] = static_cast<int32_t>(raw[i] * sensitivity);
      return LIS3MDL_STATUS_OK;
  }
  
- LIS3MDLStatusTypeDef LIS3MDLSensor::Get_G_AxesRaw(int16_t* pData) {
+ LIS3MDLStatusTypeDef LIS3MDLSensor::Get_M_AxesRaw(int16_t* pData) {
      uint8_t buffer[6];
      if (LIS3MDL_MAG_Get_Magnetic(this, buffer) == MEMS_ERROR) return LIS3MDL_STATUS_ERROR;
      for (int i = 0; i < 3; i++) pData[i] = (int16_t)(buffer[2*i+1] << 8 | buffer[2*i]);
      return LIS3MDL_STATUS_OK;
  }
  
- LIS3MDLStatusTypeDef LIS3MDLSensor::Get_G_Sensitivity(float* pfData) {
+ LIS3MDLStatusTypeDef LIS3MDLSensor::Get_M_Sensitivity(float* pfData) {
      LIS3MDL_MAG_FS_t fs;
      if (LIS3MDL_MAG_R_FullScale(this, &fs) == MEMS_ERROR) return LIS3MDL_STATUS_ERROR;
      switch (fs) {
@@ -77,7 +77,7 @@
      return LIS3MDL_STATUS_OK;
  }
  
- LIS3MDLStatusTypeDef LIS3MDLSensor::Get_G_ODR(float* odr) {
+ LIS3MDLStatusTypeDef LIS3MDLSensor::Get_M_ODR(float* odr) {
      LIS3MDL_MAG_DO_t odr_val;
      if (LIS3MDL_MAG_R_OutputDataRate(this, &odr_val) == MEMS_ERROR) return LIS3MDL_STATUS_ERROR;
      switch (odr_val) {
@@ -94,7 +94,7 @@
      return LIS3MDL_STATUS_OK;
  }
  
- LIS3MDLStatusTypeDef LIS3MDLSensor::Set_G_ODR(float odr) {
+ LIS3MDLStatusTypeDef LIS3MDLSensor::Set_M_ODR(float odr) {
      LIS3MDL_MAG_DO_t odr_val;
      if (odr <= 0.625f) odr_val = LIS3MDL_MAG_DO_0_625Hz;
      else if (odr <= 1.25f) odr_val = LIS3MDL_MAG_DO_1_25Hz;
@@ -108,7 +108,7 @@
          ? LIS3MDL_STATUS_ERROR : LIS3MDL_STATUS_OK;
  }
  
- LIS3MDLStatusTypeDef LIS3MDLSensor::Get_G_FS(float* fs) {
+ LIS3MDLStatusTypeDef LIS3MDLSensor::Get_M_FS(float* fs) {
      LIS3MDL_MAG_FS_t scale;
      if (LIS3MDL_MAG_R_FullScale(this, &scale) == MEMS_ERROR) return LIS3MDL_STATUS_ERROR;
      switch (scale) {
@@ -121,7 +121,7 @@
      return LIS3MDL_STATUS_OK;
  }
  
- LIS3MDLStatusTypeDef LIS3MDLSensor::Set_G_FS(float fs) {
+ LIS3MDLStatusTypeDef LIS3MDLSensor::Set_M_FS(float fs) {
      LIS3MDL_MAG_FS_t val;
      if (fs <= 4.0f) val = LIS3MDL_MAG_FS_4Ga;
      else if (fs <= 8.0f) val = LIS3MDL_MAG_FS_8Ga;

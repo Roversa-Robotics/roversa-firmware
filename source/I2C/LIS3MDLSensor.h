@@ -22,18 +22,18 @@
  
      LIS3MDLStatusTypeDef begin(void);
      LIS3MDLStatusTypeDef end(void);
-     LIS3MDLStatusTypeDef Enable_G(void);
-     LIS3MDLStatusTypeDef Disable_G(void);
+     LIS3MDLStatusTypeDef Enable_M(void);
+     LIS3MDLStatusTypeDef Disable_M(void);
 
      LIS3MDLStatusTypeDef ReadID(uint8_t *p_id);
      
-     LIS3MDLStatusTypeDef Get_G_Axes(int32_t *pData);
-     LIS3MDLStatusTypeDef Get_G_Sensitivity(float *pfData);
-     LIS3MDLStatusTypeDef Get_G_AxesRaw(int16_t *pData);
-     LIS3MDLStatusTypeDef Get_G_ODR(float *odr);
-     LIS3MDLStatusTypeDef Set_G_ODR(float odr);
-     LIS3MDLStatusTypeDef Get_G_FS(float *fullScale);
-     LIS3MDLStatusTypeDef Set_G_FS(float fullScale);
+     LIS3MDLStatusTypeDef Get_M_Axes(int32_t *pData);
+     LIS3MDLStatusTypeDef Get_M_Sensitivity(float *pfData);
+     LIS3MDLStatusTypeDef Get_M_AxesRaw(int16_t *pData);
+     LIS3MDLStatusTypeDef Get_M_ODR(float *odr);
+     LIS3MDLStatusTypeDef Set_M_ODR(float odr);
+     LIS3MDLStatusTypeDef Get_M_FS(float *fullScale);
+     LIS3MDLStatusTypeDef Set_M_FS(float fullScale);
 
      LIS3MDLStatusTypeDef ReadReg(uint8_t reg, uint8_t *data);
      LIS3MDLStatusTypeDef WriteReg(uint8_t reg, uint8_t data);
