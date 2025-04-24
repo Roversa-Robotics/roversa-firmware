@@ -22,56 +22,88 @@ static void handleMenu(){
     uBit.serial.printf("menu option #: %d\n",menu_option);
     uBit.serial.printf("menu previous #: %d\n",menu_previous);
     switch(menu_option){
-        case 0: //lang
-            uBit.serial.printf("Displaying L\n");
+        case 0:
             if(menu_previous==menu_option){
-                uBit.display.image.paste(person,0,0);
+                uBit.display.image.paste(person_img,0,0);
                 break;
             }
             if(menu_previous<menu_option){ //pressed down, scroll from bottom to top
                 for (int y=4; y >= 0; y--){
-                    uBit.display.image.paste(person,0,y);
+                    uBit.display.image.paste(person_img,0,y);
                     uBit.sleep(100);
                 }
                 break;
             }
             else { //pressed up, scroll from top
                 for (int y=0; y <= 4; y++){
-                    uBit.display.image.paste(person,0,y-4);
+                    uBit.display.image.paste(person_img,0,y-4);
                     uBit.sleep(100);
                 }
                 break;
             }
-        case 1: //motor calib
-            uBit.serial.printf("Displaying M\n");
+        case 1:
             uBit.display.clear();
             if(menu_previous<menu_option){
                 for (int y=4; y >= 0; y--){
-                    uBit.display.image.paste(motor,0,y);
+                    uBit.display.image.paste(motor_img,0,y);
                     uBit.sleep(100);
                 }
             }
             else{
                 for (int y=0; y <= 4; y++){
-                    uBit.display.image.paste(motor,0,y-4);
+                    uBit.display.image.paste(motor_img,0,y-4);
                     uBit.sleep(100);
                 }
             }
             break;
         case 2: //dist
-            uBit.serial.printf("Displaying D\n");
             uBit.display.clear();
-            uBit.display.print("D"); 
+            if(menu_previous<menu_option){
+                for (int y=4; y >= 0; y--){
+                    uBit.display.image.paste(distance_img,0,y);
+                    uBit.sleep(100);
+                }
+            }
+            else{
+                for (int y=0; y <= 4; y++){
+                    uBit.display.image.paste(distance_img,0,y-4);
+                    uBit.sleep(100);
+                }
+            }
             break;
         case 3: //turn deg
-            uBit.serial.printf("Displaying T\n");
             uBit.display.clear();
-            uBit.display.print("T");
+            if(menu_previous<menu_option){
+                for (int y=4; y >= 0; y--){
+                    uBit.display.image.paste(turn_img,0,y);
+                    uBit.sleep(100);
+                }
+            }
+            else{
+                for (int y=0; y <= 4; y++){
+                    uBit.display.image.paste(turn_img,0,y-4);
+                    uBit.sleep(100);
+                }
+            }
             break;
         case 4: //volume
-            uBit.serial.printf("Displaying V\n");
             uBit.display.clear();
-            uBit.display.print("V");
+                if(menu_previous==menu_option){
+                    uBit.display.image.paste(volume_img,0,0);
+                    break;
+                }
+                if(menu_previous<menu_option){
+                    for (int y=4; y >= 0; y--){
+                        uBit.display.image.paste(volume_img,0,y);
+                        uBit.sleep(100);
+                    }
+                }
+                else{
+                    for (int y=0; y <= 4; y++){
+                        uBit.display.image.paste(volume_img,0,y-4);
+                        uBit.sleep(100);
+                    }
+                }
             break;
     }
 }
@@ -212,12 +244,20 @@ static void playHandler(MicroBitEvent){
 }
 
 static void stopHandler(MicroBitEvent){ //clear program, reset flags (whether or not program running)
-    stop();
-    for(int i=0;i<num_actions;i++){
-        actions[i] = '\0'; //no actions in playAll will match
+    if(menu_press>=2){
+        menu_press = 0;
+        menu_option = 0;
+        menu_previous = 0;
+        uBit.display.clear();
     }
-    num_actions = 0;
-    pause_flag=-1;
+    else{
+        stop();
+        for(int i=0;i<num_actions;i++){
+            actions[i] = '\0'; //no actions in playAll will match
+        }
+        num_actions = 0;
+        pause_flag=-1;
+    }
 }
 
 void fiber_scheduler(){ //asynchronous event handling
