@@ -14,97 +14,54 @@ char * actions = (char*)malloc(ACTIONS_LIMIT*sizeof(char));
 char * actionsCopy;
 int stop_flag=0;
 int pause_flag=-1;
+
 int menu_press=0;
 int menu_previous=0;
 int menu_option=0;
+int menu_first_enter=0;
+
+static void scrollFromBottom(MicroBitImage image){
+    for (int y=4; y >= 0; y--){
+        uBit.display.image.paste(image,0,y);
+        uBit.sleep(100);
+    }
+}
+static void scrollFromTop(MicroBitImage image){
+    for (int y=0; y <= 4; y++){
+        uBit.display.image.paste(image,0,y-4);
+        uBit.sleep(100);
+    }
+}
 
 static void handleMenu(){
-    uBit.serial.printf("menu option #: %d\n",menu_option);
-    uBit.serial.printf("menu previous #: %d\n",menu_previous);
+    MicroBitImage img;
     switch(menu_option){
         case 0:
-            if(menu_previous==menu_option){
-                uBit.display.image.paste(person_img,0,0);
-                break;
-            }
-            if(menu_previous<menu_option){ //pressed down, scroll from bottom to top
-                for (int y=4; y >= 0; y--){
-                    uBit.display.image.paste(person_img,0,y);
-                    uBit.sleep(100);
-                }
-                break;
-            }
-            else { //pressed up, scroll from top
-                for (int y=0; y <= 4; y++){
-                    uBit.display.image.paste(person_img,0,y-4);
-                    uBit.sleep(100);
-                }
-                break;
-            }
+            img = person_img;
+            break;
         case 1:
-            uBit.display.clear();
-            if(menu_previous<menu_option){
-                for (int y=4; y >= 0; y--){
-                    uBit.display.image.paste(motor_img,0,y);
-                    uBit.sleep(100);
-                }
-            }
-            else{
-                for (int y=0; y <= 4; y++){
-                    uBit.display.image.paste(motor_img,0,y-4);
-                    uBit.sleep(100);
-                }
-            }
+            img = motor_img;
             break;
         case 2: //dist
-            uBit.display.clear();
-            if(menu_previous<menu_option){
-                for (int y=4; y >= 0; y--){
-                    uBit.display.image.paste(distance_img,0,y);
-                    uBit.sleep(100);
-                }
-            }
-            else{
-                for (int y=0; y <= 4; y++){
-                    uBit.display.image.paste(distance_img,0,y-4);
-                    uBit.sleep(100);
-                }
-            }
+            img = distance_img;
             break;
         case 3: //turn deg
-            uBit.display.clear();
-            if(menu_previous<menu_option){
-                for (int y=4; y >= 0; y--){
-                    uBit.display.image.paste(turn_img,0,y);
-                    uBit.sleep(100);
-                }
-            }
-            else{
-                for (int y=0; y <= 4; y++){
-                    uBit.display.image.paste(turn_img,0,y-4);
-                    uBit.sleep(100);
-                }
-            }
+            img = turn_img;
             break;
         case 4: //volume
-            uBit.display.clear();
-                if(menu_previous==menu_option){
-                    uBit.display.image.paste(volume_img,0,0);
-                    break;
-                }
-                if(menu_previous<menu_option){
-                    for (int y=4; y >= 0; y--){
-                        uBit.display.image.paste(volume_img,0,y);
-                        uBit.sleep(100);
-                    }
-                }
-                else{
-                    for (int y=0; y <= 4; y++){
-                        uBit.display.image.paste(volume_img,0,y-4);
-                        uBit.sleep(100);
-                    }
-                }
-            break;
+            img = volume_img;
+            break; 
+    }
+    uBit.display.clear();
+    if(menu_previous==menu_option || menu_first_enter==1){
+        uBit.display.image.paste(img,0,0);
+        menu_first_enter = 0;
+    }
+    else if(menu_previous<menu_option){ //pressed down, scroll from bottom to top
+        scrollFromBottom(img);
+    }
+    else { //pressed up, scroll from top
+        scrollFromTop(img);
     }
 }
 
@@ -159,63 +116,64 @@ static void addRight(MicroBitEvent){
     updateQueue(MICROBIT_ID_IO_P15);
 }
 
-// static void printQueue(MicroBitEvent){
-//     if(pause_flag!=0){ //can view menu if before, after, or paused program
-//         if(*actions=='\0'){
-//             uBit.serial.printf("No actions in queue\n");
-//         }
-//         else{
-//             char *actionsCopy = actions; //prints full queue for now, not printing global actionsCopy in case print called before initialized with initial play
-//             while(*actionsCopy!='\0'){
-//                 uBit.serial.printf("%c\n",*actionsCopy);
-//                 actionsCopy+=1;
-//             }
-//         }
-//     }
-// }
+static void handleSubmenu(){
+    uBit.display.clear();
+    uBit.display.print("*");
+
+    //Put in specific logic under each case
+    // switch(menu_option){
+    //     case 0:
+    //     case 1:
+    //     case 2:
+    //     case 3:
+    //     case 4:
+    // }
+}
+
+
 static void menuHandler(MicroBitEvent){
-    //Enter the menu on some condition (or figure out condition later)
-    //display icon based on number of presses since entered the menu
     menu_press+=1;
     if(menu_press<2){
         return;
     }
-    //menu_press>=2; menu entered
-    handleMenu();
+    if(menu_press%2==0){
+        menu_first_enter=1;
+        handleMenu();
+    }
+    else{ //entered submenu, always an odd # press
+        handleSubmenu();
+    }
+    
 }
 
 static void playAll(MicroBitEvent){
+    MicroBitImage display_img;
+    unsigned long time;
     while(*actionsCopy!='\0' && pause_flag==0){ //only play actions if queue not empty, not paused
         switch(*actionsCopy) {
             case 'F':
-                uBit.display.print(forward_arrow);
-                forward(100,100);
-                fiber_sleep(DRIVE_TIME);
-                stop();
-                uBit.display.clear();
+                display_img = forward_arrow;
+                time = DRIVE_TIME;
                 break;
             case 'B':
-                uBit.display.print(reverse_arrow);
-                reverse(100,100);
-                fiber_sleep(DRIVE_TIME);
-                stop();
-                uBit.display.clear();
+                display_img =reverse_arrow;
+                time = DRIVE_TIME;
                 break;
             case 'L':
-                uBit.display.print(left_arrow);
-                left(100,100);
-                fiber_sleep(TURN_TIME);
-                stop();
-                uBit.display.clear();
+                display_img =left_arrow;
+                time = TURN_TIME;
                 break;
             case 'R':
-                uBit.display.print(right_arrow);
-                right(100,100);
-                fiber_sleep(TURN_TIME);
-                stop();
-                uBit.display.clear();
+                display_img = right_arrow;
+                time = TURN_TIME;
                 break;
         }
+        uBit.display.print(display_img);
+        forward(100,100);
+        fiber_sleep(time);
+        stop();
+        uBit.display.clear();
+
         actionsCopy+=1; //iterate through commands
         fiber_sleep(1000);
     }
