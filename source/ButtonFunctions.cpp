@@ -20,31 +20,44 @@ int menu_option=0;
 
 static void handleMenu(){
     uBit.serial.printf("menu option #: %d\n",menu_option);
+    uBit.serial.printf("menu previous #: %d\n",menu_previous);
     switch(menu_option){
         case 0: //lang
             uBit.serial.printf("Displaying L\n");
-            uBit.display.print("L"); 
-            break;
+            if(menu_previous==menu_option){
+                uBit.display.image.paste(person,0,0);
+                break;
+            }
+            if(menu_previous<menu_option){ //pressed down, scroll from bottom to top
+                for (int y=4; y >= 0; y--){
+                    uBit.display.image.paste(person,0,y);
+                    uBit.sleep(100);
+                }
+                break;
+            }
+            else { //pressed up, scroll from top
+                for (int y=0; y <= 4; y++){
+                    uBit.display.image.paste(person,0,y-4);
+                    uBit.sleep(100);
+                }
+                break;
+            }
         case 1: //motor calib
             uBit.serial.printf("Displaying M\n");
             uBit.display.clear();
             if(menu_previous<menu_option){
                 for (int y=4; y >= 0; y--){
-                    MicroBitImage motor("255,0,0,0,255\n255,255,0,255,255\n255,0,255,0,255\n255,0,0,0,255\n255,0,0,0,255\n");
                     uBit.display.image.paste(motor,0,y);
                     uBit.sleep(100);
                 }
             }
             else{
                 for (int y=0; y <= 4; y++){
-                    MicroBitImage motor("255,0,0,0,255\n255,255,0,255,255\n255,0,255,0,255\n255,0,0,0,255\n255,0,0,0,255\n");
                     uBit.display.image.paste(motor,0,y-4);
                     uBit.sleep(100);
                 }
             }
-            
             break;
-            // uBit.display.print("M"); 
         case 2: //dist
             uBit.serial.printf("Displaying D\n");
             uBit.display.clear();
@@ -85,8 +98,8 @@ static void updateQueue(int pin){
 
 static void addForward(MicroBitEvent){
     if(menu_press>=2){ //up arrow being used to cycle thru menu, not add F
+        menu_previous = menu_option;
         if(menu_option>0){
-            menu_previous = menu_option;
             menu_option-=1;
         }
         handleMenu();
@@ -97,8 +110,8 @@ static void addForward(MicroBitEvent){
 }
 static void addReverse(MicroBitEvent){
     if(menu_press>=2){
+        menu_previous = menu_option;
         if(menu_option<4){
-            menu_previous = menu_option;
             menu_option+=1;
         }
         handleMenu();  
