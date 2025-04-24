@@ -14,8 +14,56 @@ char * actions = (char*)malloc(ACTIONS_LIMIT*sizeof(char));
 char * actionsCopy;
 int stop_flag=0;
 int pause_flag=-1;
+int menu_press=0;
+int menu_previous=0;
+int menu_option=0;
 
-void updateQueue(int pin){
+static void handleMenu(){
+    uBit.serial.printf("menu option #: %d\n",menu_option);
+    switch(menu_option){
+        case 0: //lang
+            uBit.serial.printf("Displaying L\n");
+            uBit.display.print("L"); 
+            break;
+        case 1: //motor calib
+            uBit.serial.printf("Displaying M\n");
+            uBit.display.clear();
+            if(menu_previous<menu_option){
+                for (int y=4; y >= 0; y--){
+                    MicroBitImage motor("255,0,0,0,255\n255,255,0,255,255\n255,0,255,0,255\n255,0,0,0,255\n255,0,0,0,255\n");
+                    uBit.display.image.paste(motor,0,y);
+                    uBit.sleep(100);
+                }
+            }
+            else{
+                for (int y=0; y <= 4; y++){
+                    MicroBitImage motor("255,0,0,0,255\n255,255,0,255,255\n255,0,255,0,255\n255,0,0,0,255\n255,0,0,0,255\n");
+                    uBit.display.image.paste(motor,0,y-4);
+                    uBit.sleep(100);
+                }
+            }
+            
+            break;
+            // uBit.display.print("M"); 
+        case 2: //dist
+            uBit.serial.printf("Displaying D\n");
+            uBit.display.clear();
+            uBit.display.print("D"); 
+            break;
+        case 3: //turn deg
+            uBit.serial.printf("Displaying T\n");
+            uBit.display.clear();
+            uBit.display.print("T");
+            break;
+        case 4: //volume
+            uBit.serial.printf("Displaying V\n");
+            uBit.display.clear();
+            uBit.display.print("V");
+            break;
+    }
+}
+
+static void updateQueue(int pin){
     if(num_actions<ACTIONS_LIMIT && pause_flag==-1){ //can't add after start playing(0) or paused(1). If want to allow update during pause, change condition to !=0
         switch(pin) {
             case MICROBIT_ID_IO_P13:
@@ -36,10 +84,28 @@ void updateQueue(int pin){
 }
 
 static void addForward(MicroBitEvent){
-    updateQueue(MICROBIT_ID_IO_P13);
+    if(menu_press>=2){ //up arrow being used to cycle thru menu, not add F
+        if(menu_option>0){
+            menu_previous = menu_option;
+            menu_option-=1;
+        }
+        handleMenu();
+    }
+    else{
+        updateQueue(MICROBIT_ID_IO_P13);
+    }
 }
 static void addReverse(MicroBitEvent){
-    updateQueue(MICROBIT_ID_IO_P14);
+    if(menu_press>=2){
+        if(menu_option<4){
+            menu_previous = menu_option;
+            menu_option+=1;
+        }
+        handleMenu();  
+    }
+    else{
+        updateQueue(MICROBIT_ID_IO_P14);
+    }
 }
 static void addLeft(MicroBitEvent){
     updateQueue(MICROBIT_ID_IO_P16);
@@ -48,19 +114,29 @@ static void addRight(MicroBitEvent){
     updateQueue(MICROBIT_ID_IO_P15);
 }
 
-static void printQueue(MicroBitEvent){
-    if(pause_flag!=0){ //can view menu if before, after, or paused program
-        if(*actions=='\0'){
-            uBit.serial.printf("No actions in queue\n");
-        }
-        else{
-            char *actionsCopy = actions; //prints full queue for now, not printing global actionsCopy in case print called before initialized with initial play
-            while(*actionsCopy!='\0'){
-                uBit.serial.printf("%c\n",*actionsCopy);
-                actionsCopy+=1;
-            }
-        }
+// static void printQueue(MicroBitEvent){
+//     if(pause_flag!=0){ //can view menu if before, after, or paused program
+//         if(*actions=='\0'){
+//             uBit.serial.printf("No actions in queue\n");
+//         }
+//         else{
+//             char *actionsCopy = actions; //prints full queue for now, not printing global actionsCopy in case print called before initialized with initial play
+//             while(*actionsCopy!='\0'){
+//                 uBit.serial.printf("%c\n",*actionsCopy);
+//                 actionsCopy+=1;
+//             }
+//         }
+//     }
+// }
+static void menuHandler(MicroBitEvent){
+    //Enter the menu on some condition (or figure out condition later)
+    //display icon based on number of presses since entered the menu
+    menu_press+=1;
+    if(menu_press<2){
+        return;
     }
+    //menu_press>=2; menu entered
+    handleMenu();
 }
 
 static void playAll(MicroBitEvent){
@@ -139,5 +215,5 @@ void fiber_scheduler(){ //asynchronous event handling
     uBit.messageBus.listen(MICROBIT_ID_IO_P5, MICROBIT_BUTTON_EVT_CLICK, playAll);
     uBit.messageBus.listen(MICROBIT_ID_IO_P5, MICROBIT_BUTTON_EVT_CLICK, playHandler);
     uBit.messageBus.listen(MICROBIT_ID_IO_P9, MICROBIT_BUTTON_EVT_CLICK, stopHandler, MESSAGE_BUS_LISTENER_IMMEDIATE);
-    uBit.messageBus.listen(MICROBIT_ID_IO_P8, MICROBIT_BUTTON_EVT_CLICK, printQueue);
+    uBit.messageBus.listen(MICROBIT_ID_IO_P8, MICROBIT_BUTTON_EVT_CLICK, menuHandler);
 }
