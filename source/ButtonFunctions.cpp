@@ -15,10 +15,15 @@ char * actionsCopy;
 int stop_flag=0;
 int pause_flag=-1;
 
+//menu state tracking
 int menu_press=0;
 int menu_previous=0;
 int menu_option=0;
-int menu_first_enter=0;
+int entering_main=false;
+int in_main=false;
+
+//default menu settings
+int sound_level = 102;
 
 static void scrollFromBottom(MicroBitImage image){
     for (int y=4; y >= 0; y--){
@@ -33,7 +38,8 @@ static void scrollFromTop(MicroBitImage image){
     }
 }
 
-static void handleMenu(){
+static void mainMenuDisplay(){
+    in_main = true;
     MicroBitImage img;
     switch(menu_option){
         case 0:
@@ -53,9 +59,9 @@ static void handleMenu(){
             break; 
     }
     uBit.display.clear();
-    if(menu_previous==menu_option || menu_first_enter==1){
+    if(menu_previous==menu_option || entering_main){
         uBit.display.image.paste(img,0,0);
-        menu_first_enter = 0;
+        entering_main = false;
     }
     else if(menu_previous<menu_option){ //pressed down, scroll from bottom to top
         scrollFromBottom(img);
@@ -86,24 +92,67 @@ static void updateQueue(int pin){
 }
 
 static void addForward(MicroBitEvent){
-    if(menu_press>=2){ //up arrow being used to cycle thru menu, not add F
+    if(menu_press>=2 && in_main){ //cycle thru main menu
         menu_previous = menu_option;
         if(menu_option>0){
             menu_option-=1;
         }
-        handleMenu();
+        mainMenuDisplay();
+    }
+    else if(menu_press>=2){ //update values in a submenu
+        switch(menu_option){
+            case 0:
+                break;
+            case 1:
+                break;
+            case 2:
+                break;
+            case 3:
+                break;
+            case 4:
+                if(sound_level<255){
+                    sound_level+=51;
+                    uBit.audio.setVolume(sound_level);
+                }
+                uBit.serial.printf("sound level: %d\n",uBit.audio.getVolume());
+                uBit.display.print(forward_arrow);
+                ManagedString sound = ManagedString("happy");
+                uBit.audio.soundExpressions.play(sound);
+                break;
+        }
     }
     else{
         updateQueue(MICROBIT_ID_IO_P13);
     }
 }
 static void addReverse(MicroBitEvent){
-    if(menu_press>=2){
+    if(menu_press>=2 && in_main){
         menu_previous = menu_option;
         if(menu_option<4){
             menu_option+=1;
         }
-        handleMenu();  
+        mainMenuDisplay();  
+    }
+    else if(menu_press>=2){ //update values in a submenu
+        switch(menu_option){
+            case 0:
+                break;
+            case 1:
+                break;
+            case 2:
+                break;
+            case 3:
+                break;
+            case 4:
+                if(sound_level>51){
+                    sound_level-=51;
+                    uBit.audio.setVolume(sound_level);
+                }
+                uBit.display.print(reverse_arrow);
+                ManagedString sound = ManagedString("happy");
+                uBit.audio.soundExpressions.play(sound);
+                break;
+        }
     }
     else{
         updateQueue(MICROBIT_ID_IO_P14);
@@ -116,18 +165,16 @@ static void addRight(MicroBitEvent){
     updateQueue(MICROBIT_ID_IO_P15);
 }
 
-static void handleSubmenu(){
-    uBit.display.clear();
-    uBit.display.print("*");
-
+static void submenuDisplay(){
+    in_main = false;
     //Put in specific logic under each case
-    // switch(menu_option){
-    //     case 0:
-    //     case 1:
-    //     case 2:
-    //     case 3:
-    //     case 4:
-    // }
+    for(int i=0;i<2;i++){
+        uBit.display.setBrightness(75);
+        uBit.sleep(400);
+        uBit.display.setBrightness(255);
+        uBit.sleep(400);
+    }
+    uBit.display.setBrightness(75);
 }
 
 
@@ -137,11 +184,11 @@ static void menuHandler(MicroBitEvent){
         return;
     }
     if(menu_press%2==0){
-        menu_first_enter=1;
-        handleMenu();
+        entering_main=true;
+        mainMenuDisplay();
     }
     else{ //entered submenu, always an odd # press
-        handleSubmenu();
+        submenuDisplay();
     }
     
 }
@@ -192,7 +239,7 @@ static void playHandler(MicroBitEvent){
         pause_flag=0;
     }
     else{
-        if(num_actions>0){ //don't let play presses b/w empty queues mess with flag
+        if(num_actions>0){
             if(pause_flag==-1){
                 actionsCopy = actions;
             }
@@ -219,6 +266,9 @@ static void stopHandler(MicroBitEvent){ //clear program, reset flags (whether or
 }
 
 void fiber_scheduler(){ //asynchronous event handling
+    //initialize defaults
+    // uBit.audio.setVolume(sound_level);
+
     uBit.messageBus.listen(MICROBIT_ID_IO_P13, MICROBIT_BUTTON_EVT_CLICK, addForward);
     uBit.messageBus.listen(MICROBIT_ID_IO_P14, MICROBIT_BUTTON_EVT_CLICK, addReverse);
     uBit.messageBus.listen(MICROBIT_ID_IO_P16, MICROBIT_BUTTON_EVT_CLICK, addLeft);
