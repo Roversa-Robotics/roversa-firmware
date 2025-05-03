@@ -75,20 +75,20 @@ static void mainMenuDisplay(){
             break; 
     }
     uBit.display.clear();
-    if(menu_option_prev==menu_option || entering_main){ //for first, last menu_options (case 0, case 4), menu_option_prev==menu_option; paste image without scroll-in effects
+    if(menu_option_prev==menu_option || entering_main){ // for first, last menu_options (case 0, case 4), menu_option_prev==menu_option; paste image without scroll-in effects
         uBit.display.image.paste(img,0,0);
         entering_main = false;
     }
-    else if(menu_option_prev<menu_option){ //go to option below; scroll image in bottom to top
+    else if(menu_option_prev<menu_option){ // go to option below; scroll image in bottom to top
         scrollFromBottom(img);
     }
-    else { //pressed up, scroll image in top to bottom
+    else { // pressed up, scroll image in top to bottom
         scrollFromTop(img);
     }
 }
 
 static void submenuDisplay(){
-    for(int i=0;i<2;i++){ //flashing symbol: entered submenu for current menu_option
+    for(int i=0;i<2;i++){ // flashing symbol: entered submenu for current menu_option
         uBit.display.setBrightness(75);
         uBit.sleep(400);
         uBit.display.setBrightness(255);
@@ -123,14 +123,14 @@ static void updateQueue(int pin){
     * add forward move command 
 */
 static void addForward(MicroBitEvent){
-    if(menu_press>=2 && in_main){ //cycle thru main menu
+    if(menu_press>=2 && in_main){ // cycle thru main menu
         menu_option_prev = menu_option;
         if(menu_option>0){
             menu_option-=1;
         }
         mainMenuDisplay();
     }
-    else if(menu_press>=2){ //handle forward button press based on current menu_option
+    else if(menu_press>=2){ // handle forward button press based on current menu_option
         switch(menu_option){
             case 0:
                 break;
@@ -149,7 +149,7 @@ static void addForward(MicroBitEvent){
     }
 }
 
-static void addReverse(MicroBitEvent){
+static void addReverse(MicroBitEvent){ // same logic as described for addForward
     if(menu_press>=2 && in_main){
         menu_option_prev = menu_option;
         if(menu_option<4){
@@ -176,7 +176,7 @@ static void addReverse(MicroBitEvent){
     }
 }
 
-static void addLeft(MicroBitEvent){
+static void addLeft(MicroBitEvent){ // same logic as described for addForward
     if(menu_press>=2){
         switch(menu_option){
             case 0:
@@ -196,8 +196,8 @@ static void addLeft(MicroBitEvent){
     }
 }
 
-static void addRight(MicroBitEvent){
-    if(menu_press>=2){ //update values in a submenu
+static void addRight(MicroBitEvent){ // same logic as described for addForward
+    if(menu_press>=2){
         switch(menu_option){
             case 0:
                 break;
@@ -227,7 +227,7 @@ static void menuHandler(MicroBitEvent){
         in_main = true;
         mainMenuDisplay();
     }
-    else{ //entered submenu; odd # of presses
+    else{ // entered submenu; odd # of presses
         in_main = false;
         submenuDisplay();
     }   
@@ -250,7 +250,7 @@ static void playHandler(MicroBitEvent){
 static void playActions(MicroBitEvent){
     MicroBitImage display_img;
     unsigned long time;
-    while(*actions_copy!='\0' && pause_flag==0){ //only play actions if queue not empty, not paused
+    while(*actions_copy!='\0' && pause_flag==0){ // only play actions if queue not empty, not paused
         switch(*actions_copy) {
             case 'F':
                 forward(100,100);
