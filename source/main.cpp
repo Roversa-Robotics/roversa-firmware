@@ -197,7 +197,7 @@ FusionOffset fusionOffset;
 FusionAhrs fusionAHRS;
 
 // External Vars
-float fusionDeltaTime;
+float fusionDeltaTime; // In Seconds
 FusionEuler fusionEuler;
 FusionVector fusionEarth;
 
@@ -261,7 +261,7 @@ void updateFusion() {
 
      // Calculate delta time (in seconds) to account for gyroscope sample clock error
      unsigned long currentTime = uBit.systemTime();
-     float fusionDeltaTime = (currentTime - fusionPreviousTime) / 1000.0f; // Convert ms to seconds
+     fusionDeltaTime = (currentTime - fusionPreviousTime) / 1000.0f; // Convert ms to seconds
      fusionPreviousTime = currentTime;
 
      // Update gyroscope AHRS algorithm
@@ -300,7 +300,7 @@ void printFusion() {
 
 //// PID
 // Constants
-const float Kp = 1.0f;
+const float Kp = 0.1f; // For every degree of offset Yaw, correct the wheel speed by (Kp*100)%
 const float Ki = 0.0f;
 const float Kd = 0.0f;
 
@@ -343,52 +343,61 @@ void initPID() {
 }
 
 // Operational
-float updatePID(float desired_yaw, float delta, bool print = false) { // Returns the Speed Parameter
+float updatePID(float desired_yaw, bool print = false) { // Returns the Speed Parameter
     // Get the Error
     float actual_yaw = wrapDegrees180(fusionEuler.angle.yaw - initial_yaw);
     float error = getSignedDifference(desired_yaw, actual_yaw);
+    float delta = fusionDeltaTime;
+
+    // Basic
+    pidIntegral += error * delta;
+    float derivative = (error - pidPreviousError) / delta;
+    pidPreviousError = error;
 
     // P (proportional)
     float P = Kp * error;
 
     // I (integral)
-    pidIntegral += error * delta;
     float I = Ki * pidIntegral;
 
     // D (derivative)
-    float derivative = (error - pidPreviousError) / delta;
     float D = Kd * derivative;
-    pidPreviousError = error;
-
+    
     // W (P + I + D)
     float W = P + I + D;
 
     // Print
-    if (print) {
+    if (true) {
         
         // Cursor Up
-        moveCursorUp(7);
+        moveCursorUp(3);
 
         // Yaw Values
-        uBit.serial.printf("initial_yaw: ");
+        uBit.serial.printf("yaw: [");
+
+        uBit.serial.printf("initial: ");
         printFloat(initial_yaw);
-        moveCursorDown(1);
+        uBit.serial.printf(", ");
 
-        uBit.serial.printf("desired_yaw: ");
-        printFloat(desired_yaw);
-        moveCursorDown(1);
+        uBit.serial.printf("measured: ");
+        printFloat(fusionEuler.angle.yaw);
+        uBit.serial.printf(", ");
 
-        uBit.serial.printf("actual_yaw: ");
+        uBit.serial.printf("actual (m - i): ");
         printFloat(actual_yaw);
-        moveCursorDown(1);
+        uBit.serial.printf(", ");
 
-        uBit.serial.printf("error_yaw: ");
+        uBit.serial.printf("desired: ");
+        printFloat(desired_yaw);
+        uBit.serial.printf(", ");
+
+        uBit.serial.printf("error (d - a): ");
         printFloat(error);
+        uBit.serial.printf("]");
+
         moveCursorDown(1);
         
         // W = P + I + D
-        moveCursorDown(1);
-
         uBit.serial.printf("W: ");
         printFloat(W);
         uBit.serial.printf(" = sum(");
@@ -415,14 +424,28 @@ float updatePID(float desired_yaw, float delta, bool print = false) { // Returns
 void drivePID(float left, float right, float expected_yaw, bool print = false) {
 
     // Get the W
-    float W = updatePID(expected_yaw, fusionDeltaTime, print);
+    float W = updatePID(expected_yaw, print);
+
+    // Value Positive (yawing too much left), Weaken Right Wheel. Else, Weaken Left Wheel
+    if (W > 0.0f) {right *= (1.0f - W);}
+    else {left *= (1.0f + W);}
+
+    // Cap the left and right speeds so it can only affect ratios between -100% and 100% of the Wheel Speeds
+    if (right > 100.0f) {right = 100.0f;} else if (right < -100.0f) {right = -100.0f;}
+    if (left > 100.0f) {left = 100.0f;} else if (left < -100.0f) {left = -100.0f;}
 
     // Drive
-    float true_left = left;
-    float true_right = right;
+    drive(left, right);
 
-    // Drive
-    drive(true_left, true_right);
+    // Print
+    if (print) {
+        uBit.serial.printf("left, right: [");
+        printFloat(left);
+        uBit.serial.printf(", ");
+        printFloat(right);
+        uBit.serial.printf("]");
+        moveCursorDown(1);
+    }
 }
 
 
@@ -480,7 +503,7 @@ void testPID() {
 
     // Timing
     const float FUSION_STABILIZE_TIME = 2000.0f; // In ms
-    const float PID_TIME = 2000.0f; // In ms
+    const float PID_RUN_TIME = 2000.0f; // In ms
 
 
     //// Internal Variables
@@ -532,7 +555,7 @@ void testPID() {
 
             // Triggered by Time Elapsed: End
             end_time = uBit.systemTime();
-            if ((end_time - start_time) >= PID_TIME) {
+            if ((end_time - start_time) >= PID_RUN_TIME) {
 
                 // Basic
                 buttonAWasPressed = false;
@@ -575,47 +598,6 @@ void testPID() {
         uBit.sleep(DELTA * 1000);
     }
 }
-
-/*
-void PIDTest1() {
-    // Vars
-    bool start = false;
-
-    // Init
-    initIMU();
-
-    // While Loop
-    while (true) {
-
-         //// Ignore
-         if (!buttonAWasPressed) {}
-        
-         //// Init
-         else if !(start) {
-            start = true;
-
-            // Init the Fusion
-            initFusion();
-
-            // Setup the PID
-            initPID()
-
-            // Start the Servo
-            forward(100, 100);
-
-         }
-
-         //// Update
-         // Update Fusion
-         updateFusion();
-
-         // Update the PID
-
-        // Wait
-        uBit.sleep(DELTA * 1000);
-    }
-}
-*/
 
 //// Main
 int main() {
