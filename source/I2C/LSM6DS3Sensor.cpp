@@ -4,7 +4,7 @@
 extern MicroBit uBit;
 
 LSM6DS3Sensor::LSM6DS3Sensor(MicroBitI2C* i2c, uint8_t address)
-    : dev_i2c(i2c), address(address << 1), X_isEnabled(0), G_isEnabled(0), X_Last_ODR(104.0f), G_Last_ODR(104.0f)
+    : dev_i2c(i2c), address(address << 1), X_Last_ODR(104.0f), G_Last_ODR(104.0f), X_isEnabled(0), G_isEnabled(0)
 { }
 
 LSM6DS3StatusTypeDef LSM6DS3Sensor::begin() {

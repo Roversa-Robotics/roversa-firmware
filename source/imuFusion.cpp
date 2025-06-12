@@ -10,6 +10,8 @@ LIS3MDLSensor mag(&uBit.i2c, 0x1E);
 
 // Setup
 void initIMU() {
+    // NOTE: Below has not been failed before, TODO: Create an edgecase where it does fail
+
     // Gyroscope and Accelerometer
     if (accgyro.begin() != 0) {
         uBit.serial.printf("Accelerometer / Gyroscope initialization failed\r\n");
@@ -135,7 +137,7 @@ void initFusion(unsigned int new_SAMPLE_RATE) {
     const FusionAhrsSettings settings = {
             .convention = FusionConventionNed, // DEF: North, East, Down
             .gain = 0.5f, // DEF: Controls how strongly the AHRS algorithm trusts accelerometer and magnetometer feedback when correcting orientation drift.
-            .gyroscopeRange = gyro_sensitivity, // DEF: replace this with actual gyroscope range in degrees/s // TODO: Start here, easy data to find
+            .gyroscopeRange = gyro_sensitivity, // DEF: replace this with actual gyroscope range in degrees/s
             .accelerationRejection = 10.0f, // DEF: What this means: “If the accelerometer vector differs from expected gravity by more than 10 degrees, do not trust it for this update.”
             .magneticRejection = 10.0f, // DEF: Similar for Above
             .recoveryTriggerPeriod = 5 * SAMPLE_RATE, // DEF: “If the accelerometer/magnetometer got ignored due to bad data, how long do we wait before letting it influence the orientation again?” (in terms of Seconds as units)
@@ -198,6 +200,7 @@ void printFusion() {
     uBit.serial.printf("]");
     moveCursorDown(1);
 }
+
 
 //// IMUFusion
 void initIMUFusion(unsigned int new_SAMPLE_RATE) {

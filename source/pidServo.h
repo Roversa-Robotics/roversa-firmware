@@ -42,13 +42,18 @@ float getSignedDifference(float current_angle, float target_angle);
 float wrapDegrees180(float angle);
 
 // Operational
-void initPID(int left, int right);
+void initPID(bool go_forward, int desired_yaw);
 void updatePIDServo(bool print = false); // External Update (delta) Function
 
 // PID Driving (External Vars for User-Access)
 void forward();
+void backward();
+void right();
+void left();
+
 void stop();
+
+// Helpers
 bool is_driving();
-float get_time_driven();
 
 #endif // PID_SERVO_H

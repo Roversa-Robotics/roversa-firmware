@@ -22,7 +22,7 @@ int buttonBState = 0;
 //// Main
 // Constants
 const unsigned int new_SAMPLE_RATE = 100; // 100 Samples per Second
-const float DELTA = 1.0f/new_SAMPLE_RATE; // In Seconds (0.1 s currently)
+const float DELTA = 1.0f/new_SAMPLE_RATE; // In Seconds (0.01 s currently)
 
 // Buttons
 static void onButtonA(MicroBitEvent) {
@@ -45,6 +45,7 @@ int main() {
 
     // pidServo
     float MAX_DRIVE_TIME = 2000.f; // In msec
+    float start_drive_time; // In msec
 
     //// Init
     // UBit Setup
@@ -56,7 +57,6 @@ int main() {
     initIMUFusion(new_SAMPLE_RATE);
 
     //// Main Loop
-    bool hold_last_printout = false;
     while (true) {
 
         //// Printing
@@ -68,9 +68,6 @@ int main() {
             do_print = true;
             print_start_time = print_end_time;
         }
-
-        // Hold the Printout
-        if (hold_last_printout) {do_print = false;}
 
         //// Update Fusion
         updateIMUFusion();
@@ -88,7 +85,7 @@ int main() {
         }
 
         // Time Elapsed
-        if (is_driving() & (get_time_driven() >= MAX_DRIVE_TIME)) {
+        else if (is_driving() & ((uBit.systemTime() - start_drive_time) >= MAX_DRIVE_TIME)) {
             buttonBJustPressed = true;
             buttonBState = 2;
         }
@@ -100,11 +97,16 @@ int main() {
             // Idle State
             if (buttonBState == 0) {}
 
-            // Make the Bot go Forward
-            if (buttonBState == 1) {forward();}
+            // Make the Bot Drive
+            if (buttonBState == 1) {
+                start_drive_time = uBit.systemTime();
+                right();
+            }
 
             // Stop the Bot
-            if (buttonBState == 2) {stop();}
+            if (buttonBState == 2) {
+                stop();
+            }
         }
 
         //// Do Print
@@ -121,7 +123,7 @@ int main() {
             moveCursorDown(1);
             uBit.serial.printf("Press B to Toggle the PID Loop");
             moveCursorDown(1);
-            uBit.serial.printf("After PID Loop Runs, Output will hold until B button is pressed");
+            uBit.serial.printf("After PID Loop Runs, Output will hold until B button is again pressed");
             moveCursorDown(1);
 
             // Fusion
@@ -143,6 +145,11 @@ int main() {
 
         //// Update pidServo
         updatePIDServo(do_print);
+
+        // Thought was Driving, but is no longer Driving
+        if (!is_driving() & (buttonBState == 1)) {
+            buttonBState = 2;
+        }
 
         //// Reset the Buttons being Pressed
         buttonAJustPressed = false;

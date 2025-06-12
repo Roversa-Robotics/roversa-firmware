@@ -1,5 +1,13 @@
 #include "pidServo.h"
 
+/* Future Developments
+
+void updatePIDServo(bool print)
+    When DESIRED_YAW is set to 90 (instead of 0), and Kp != 0 and Ki = Kd = 0, the bot first rotates right by 90 degrees, then goes forward
+    This could be used as a general trigger, say, when "error" gets small enough, stop rotating
+
+*/
+
 
 //// MicroBit
 extern MicroBit uBit;
@@ -38,8 +46,10 @@ void stopServo() {
 
 //// PID
 // Init
-int LEFT;
-int RIGHT;
+bool GO_FORWARD;
+float DESIRED_YAW;
+
+// Do the Drive (When false, don't move)
 bool do_drive = false;
 
 // Internal Vars
@@ -48,8 +58,7 @@ float pidIntegral;
 float initial_yaw;
 
 // Timing
-float drive_start_time; // msec
-float drive_end_time; // msec
+float drive_prev_time; // msec
 
 // Helpers
 float getSmallestDifference(float current_angle, float target_angle) {
@@ -75,11 +84,11 @@ float wrapDegrees180(float angle) {
 }
 
 // Operational
-void initPID(int new_LEFT, int new_RIGHT) {
+void initPID(bool go_forward, int desired_yaw) {
 
     // Basic
-    LEFT = new_LEFT;
-    RIGHT = new_RIGHT;
+    GO_FORWARD = go_forward;
+    DESIRED_YAW = desired_yaw;
 
     // I and D variables
     pidPreviousError = 0;
@@ -89,8 +98,7 @@ void initPID(int new_LEFT, int new_RIGHT) {
     initial_yaw = getYaw();
 
     // Start the Loop
-    drive_start_time = uBit.systemTime();
-    drive_end_time = drive_start_time;
+    drive_prev_time = uBit.systemTime();
     do_drive = true;
 }
 
@@ -100,11 +108,14 @@ void updatePIDServo(bool print) { // Return if Loop is Active
     if (!do_drive) {return;}
 
     //// Get W
+    // Get the Delta
+    float drive_current_time = uBit.systemTime(); // in ms
+    float delta = (drive_current_time - drive_prev_time) / 1000.0f; // in s
+    drive_prev_time = drive_current_time; // in ms
+
     // Get the Error
-    float desired_yaw = 0; // TODO: Automate
     float actual_yaw = wrapDegrees180(getYaw() - initial_yaw);
-    float error = getSignedDifference(desired_yaw, actual_yaw);
-    float delta = getDelta(); // From the Fusion Algorithm
+    float error = getSignedDifference(DESIRED_YAW, actual_yaw);
 
     // Basic
     pidIntegral += error * delta;
@@ -122,21 +133,32 @@ void updatePIDServo(bool print) { // Return if Loop is Active
     
     // W (P + I + D)
     float W = P + I + D;
-    float left = LEFT;
-    float right = RIGHT;
+
+    //// Left and Right
+    // If Targetting a Specific yaw, and Once the W Starts impacting the Output, Stop
+    if ((DESIRED_YAW != 0.0f) & (std::abs(W) <= 1.0f)) {stop(); return;}
+
+    // Forward
+    float left = 100;
+    float right = 100;
+
+    // Backwards
+    if (!GO_FORWARD) {
+        left *= -1;
+        right *= -1;
+        W *= -1; // Invert W
+    }
+
+    // Implement from W
     if (W > 0.0f) {right *= (1.0f - W);} // Value Positive (yawing too much left), Weaken Right Wheel. Else, Weaken Left Wheel
     else {left *= (1.0f + W);}
 
-    //// Drive based on W
     // Cap the left and right speeds (so it can only affect ratios between -100% and 100% of the Wheel Speeds)
     if (right > 100.0f) {right = 100.0f;} else if (right < -100.0f) {right = -100.0f;}
     if (left > 100.0f) {left = 100.0f;} else if (left < -100.0f) {left = -100.0f;}
 
     // Drive
     driveServo(left, right);
-
-    // Drive End Time
-    drive_end_time = uBit.systemTime();
 
     // Print
     if (print) {
@@ -157,7 +179,7 @@ void updatePIDServo(bool print) { // Return if Loop is Active
         uBit.serial.printf(", ");
 
         uBit.serial.printf("desired: ");
-        printFloat(desired_yaw);
+        printFloat(DESIRED_YAW);
         uBit.serial.printf(", ");
 
         uBit.serial.printf("error (d - a): ");
@@ -193,16 +215,28 @@ void updatePIDServo(bool print) { // Return if Loop is Active
         uBit.serial.printf("]");
         moveCursorDown(1);
 
-        // Time Drive
-        uBit.serial.printf("time driven (ms): ");
-        printFloat(get_time_driven());
+        // Delta
+        uBit.serial.printf("delta (ms): ");
+        printFloat(delta * 1000.0f);
         moveCursorDown(1);
     }
 }
 
 // PID Driving (External Vars for User-Access)
 void forward() {
-    initPID(100, 100);
+    initPID(true, 0);
+}
+
+void backward() {
+    initPID(false, 0);
+}
+
+void right() {
+    initPID(true, 90);
+}
+
+void left() {
+    initPID(true, -90);
 }
 
 void stop() {
@@ -210,10 +244,7 @@ void stop() {
     stopServo();
 }
 
+// Helpers
 bool is_driving() {
     return do_drive;
-}
-
-float get_time_driven() { // In msec
-    return (drive_end_time - drive_start_time);
 }
