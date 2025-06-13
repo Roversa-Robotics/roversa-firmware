@@ -12,6 +12,13 @@
 #include <cmath>
 #include <cstdint>
 
+
+/*
+@author: Rowland Halsey Robinson, 6/13/25
+tbx9hk@virginia.edu
+*/
+
+
 //// Microbit
 MicroBit uBit;
 bool buttonAJustPressed = false;

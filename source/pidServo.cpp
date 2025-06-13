@@ -3,8 +3,7 @@
 /* Future Developments
 
 void updatePIDServo(bool print)
-    When DESIRED_YAW is set to 90 (instead of 0), and Kp != 0 and Ki = Kd = 0, the bot first rotates right by 90 degrees, then goes forward
-    This could be used as a general trigger, say, when "error" gets small enough, stop rotating
+    Refine right() and left() so that they cannot overshoot their desired angle
 
 */
 
@@ -136,7 +135,7 @@ void updatePIDServo(bool print) { // Return if Loop is Active
 
     //// Left and Right
     // If Targetting a Specific yaw, and Once the W Starts impacting the Output, Stop
-    if ((DESIRED_YAW != 0.0f) & (std::abs(W) <= 1.0f)) {stop(); return;}
+    if ((DESIRED_YAW != 0.0f) & (std::abs(error) <= 5.0f)) {stop(); return;}
 
     // Forward
     float left = 100;
