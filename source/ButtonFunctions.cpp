@@ -1,8 +1,9 @@
 #include "MicroBit.h"
 #include "Tests.h"
-#include "servoRoversa.h"
+//#include "servoRoversa.h"
 #include "Buttons.h"
 #include "Images.h"
+#include "pidServo.h"
 
 #define DRIVE_TIME 1350
 #define TURN_TIME 650
@@ -253,22 +254,26 @@ static void playActions(MicroBitEvent){
     while(*actions_copy!='\0' && pause_flag==0){ // only play actions if queue not empty, not paused
         switch(*actions_copy) {
             case 'F':
-                forward(100,100);
+                //forward(100,100);
+                forward();
                 display_img = forward_arrow;
                 time = DRIVE_TIME;
                 break;
             case 'B':
-                reverse(100,100);
+                //reverse(100,100);
+                backward();
                 display_img =reverse_arrow;
                 time = DRIVE_TIME;
                 break;
             case 'L':
-                left(100,100);
+                //left(100,100);
+                left();
                 display_img =left_arrow;
                 time = TURN_TIME;
                 break;
             case 'R':
-                right(100,100);
+                //right(100,100);
+                right();
                 display_img = right_arrow;
                 time = TURN_TIME;
                 break;
