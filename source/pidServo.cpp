@@ -224,27 +224,18 @@ void updatePIDServo(bool print) { // Return if Loop is Active
 // PID Driving (External Vars for User-Access)
 void forward() {
     initPID(true, 0);
-    while (do_drive) {
-        updatePIDServo(true);
-    }
 }
 
 void backward() {
     initPID(false, 0);
-    updatePIDServo(true);
-
 }
 
 void right() {
     initPID(true, 90);
-    updatePIDServo(true);
-
 }
 
 void left() {
     initPID(true, -90);
-    updatePIDServo(true);
-
 }
 
 void stop() {

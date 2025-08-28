@@ -255,9 +255,10 @@ static void playActions(MicroBitEvent){
         switch(*actions_copy) {
             case 'F':
                 //forward(100,100);
-                forward();
+                start_drive_time = uBit.systemTime();
                 display_img = forward_arrow;
                 time = DRIVE_TIME;
+                forward();
                 break;
             case 'B':
                 //reverse(100,100);
