@@ -5,6 +5,18 @@
 #include "Images.h"
 #include "pidServo.h"
 
+#include "helpers.h"
+
+#include "imuFusion.h"
+
+#include <stdbool.h>
+#include <stdio.h>
+#include <time.h>
+
+#include <cmath>
+#include <cstdint>
+
+
 #define DRIVE_TIME 1350
 #define TURN_TIME 650
 #define ACTIONS_LIMIT 50 //hold up to 50 actions
@@ -248,9 +260,35 @@ static void playHandler(MicroBitEvent){
     }
 }
 
+//// Microbit
+MicroBit uBit;
+
+//// Main
+// Constants
+const unsigned int new_SAMPLE_RATE = 100; // 100 Samples per Second
+const float DELTA = 1.0f/new_SAMPLE_RATE; // In Seconds (0.01 s currently)
+
+
 static void playActions(MicroBitEvent){
+    
+    //// Constants
+    // Timing
+    const float PRINT_INTERVAL = 500.0f; // In msec
+    float print_start_time = uBit.systemTime() + PRINT_INTERVAL; // In msec
+
+    // pidServo
+    float MAX_DRIVE_TIME = 2000.f; // In msec
+    float start_drive_time; // In msec
+
+    //// Init
+    // UBit Setup
+    uBit.init();
+    initIMUFusion(new_SAMPLE_RATE);
+
+
     MicroBitImage display_img;
     unsigned long time;
+
     while(*actions_copy!='\0' && pause_flag==0){ // only play actions if queue not empty, not paused
         switch(*actions_copy) {
             case 'F':
@@ -258,7 +296,13 @@ static void playActions(MicroBitEvent){
                 start_drive_time = uBit.systemTime();
                 display_img = forward_arrow;
                 time = DRIVE_TIME;
-                forward();
+                start_drive_time = uBit.systemTime();
+                while (true) {
+                    updateIMUFusion();
+                    forward();
+                    updatePIDServo(true);
+                    uBit.sleep(DELTA * 1000);
+                }
                 break;
             case 'B':
                 //reverse(100,100);
