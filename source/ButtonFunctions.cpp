@@ -261,7 +261,7 @@ static void playHandler(MicroBitEvent){
 }
 
 //// Microbit
-MicroBit uBit;
+//MicroBit uBit;
 
 //// Main
 // Constants
@@ -270,39 +270,32 @@ const float DELTA = 1.0f/new_SAMPLE_RATE; // In Seconds (0.01 s currently)
 
 
 static void playActions(MicroBitEvent){
-    
-    //// Constants
-    // Timing
-    const float PRINT_INTERVAL = 500.0f; // In msec
-    float print_start_time = uBit.systemTime() + PRINT_INTERVAL; // In msec
-
-    // pidServo
-    float MAX_DRIVE_TIME = 2000.f; // In msec
-    float start_drive_time; // In msec
-
-    //// Init
-    // UBit Setup
-    uBit.init();
-    initIMUFusion(new_SAMPLE_RATE);
-
 
     MicroBitImage display_img;
     unsigned long time;
+    float start_drive_time = uBit.systemTime();
+    float check = uBit.systemTime();
 
     while(*actions_copy!='\0' && pause_flag==0){ // only play actions if queue not empty, not paused
         switch(*actions_copy) {
             case 'F':
                 //forward(100,100);
-                start_drive_time = uBit.systemTime();
                 display_img = forward_arrow;
                 time = DRIVE_TIME;
                 start_drive_time = uBit.systemTime();
-                while (true) {
+                forward();
+                while ((uBit.systemTime() - start_drive_time) <= 2000.0f) {
                     updateIMUFusion();
-                    forward();
                     updatePIDServo(true);
                     uBit.sleep(DELTA * 1000);
+                    
+                    if (check == uBit.systemTime()) {
+                        uBit.serial.printf("same");
+                    }
+                    
                 }
+                uBit.serial.printf("done");
+                stop();
                 break;
             case 'B':
                 //reverse(100,100);
