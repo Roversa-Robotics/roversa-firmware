@@ -1,6 +1,6 @@
 #include "MicroBit.h"
 #include "helpers.h"
-#include "Tests.h"
+
 #include "imuFusion.h"
 
 #include "pidServo.h"
@@ -52,22 +52,37 @@ int main() {
 
     // pidServo
     float MAX_DRIVE_TIME = 2000.f; // In msec
-    //float start_drive_time; // In msec
+    float start_drive_time; // In msec
 
     //// Init
     // UBit Setup
     uBit.init();
-    //uBit.messageBus.listen(MICROBIT_ID_BUTTON_A, MICROBIT_BUTTON_EVT_CLICK, onButtonA);
-    //uBit.messageBus.listen(MICROBIT_ID_BUTTON_B, MICROBIT_BUTTON_EVT_CLICK, onButtonB);
-    //uBit.init(); //leaving in because also calling uBit.display
-    scheduler_init(uBit.messageBus);
-    fiber_scheduler();
+    uBit.messageBus.listen(MICROBIT_ID_BUTTON_A, MICROBIT_BUTTON_EVT_CLICK, onButtonA);
+    uBit.messageBus.listen(MICROBIT_ID_BUTTON_B, MICROBIT_BUTTON_EVT_CLICK, onButtonB);
 
     // IMU Fusion
     initIMUFusion(new_SAMPLE_RATE);
 
     //// Main Loop
     while (true) {
+
+        // adjust p i d values in realtime
+        if (uBit.serial.isReadable()) {
+            ManagedString input = uBit.serial.readUntil(ManagedString('\n'));
+            char select = input.toCharArray()[0];
+            float value = atof(input.toCharArray() + 1);
+            if (select == 'p') { Kp = value; }
+            else if (select == 'd') { Kd = value; }
+            else if (select == 'i') { Ki = value; }
+            else if (select == 's') {
+                uBit.serial.printf("Kp: "); 
+                printFloat(Kp);
+                uBit.serial.printf("Ki: ");
+                printFloat(Ki);
+                uBit.serial.printf("Kd: ");
+                printFloat(Kd);
+            }
+        }   
 
         //// Printing
         bool do_print = false;
@@ -82,7 +97,6 @@ int main() {
         //// Update Fusion
         updateIMUFusion();
 
-        /*
         //// Triggers
         // Button A Pressed
         if (buttonAJustPressed) {
@@ -111,7 +125,7 @@ int main() {
             // Make the Bot Drive
             if (buttonBState == 1) {
                 start_drive_time = uBit.systemTime();
-                right();
+                forward();
             }
 
             // Stop the Bot
@@ -143,6 +157,8 @@ int main() {
                 uBit.serial.printf("Fusion Printout:");
                 moveCursorDown(1);
                 printIMUFusion();
+                uBit.serial.printf("yaw: ");
+                printFloat(getYaw());
             }
 
             // pidServo
@@ -153,13 +169,20 @@ int main() {
                 // Printout for pidServo happens below
             }
         }
-        */
 
         //// Update pidServo
         updatePIDServo(do_print);
 
+        // Thought was Driving, but is no longer Driving
+        if (!is_driving() & (buttonBState == 1)) {
+            buttonBState = 2;
+        }
+
+        //// Reset the Buttons being Pressed
+        buttonAJustPressed = false;
+        buttonBJustPressed = false;
+
         //// Wait
         uBit.sleep(DELTA * 1000);
-        fiber_sleep(1000);
     }
 }

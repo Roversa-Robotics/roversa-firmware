@@ -11,6 +11,9 @@ void updatePIDServo(bool print)
 //// MicroBit
 extern MicroBit uBit;
 
+float Kp = 1.0; //.3, 0 0 
+float Ki = 0.05;
+float Kd = 0.05;
 
 //// Servo
 long mapRange(long x, long in_min, long in_max, long out_min, long out_max) {
@@ -56,6 +59,10 @@ float pidPreviousError;
 float pidIntegral;
 float initial_yaw;
 
+//Yaw is way too noisy on its own; we have to filter it
+float filteredYaw = 0.0f;
+const float alpha = 0.3f;
+
 // Timing
 float drive_prev_time; // msec
 
@@ -95,6 +102,7 @@ void initPID(bool go_forward, int desired_yaw) {
 
     // Initial Yaw
     initial_yaw = getYaw();
+    filteredYaw = initial_yaw;
 
     // Start the Loop
     drive_prev_time = uBit.systemTime();
@@ -113,8 +121,16 @@ void updatePIDServo(bool print) { // Return if Loop is Active
     drive_prev_time = drive_current_time; // in ms
 
     // Get the Error
-    float actual_yaw = wrapDegrees180(getYaw() - initial_yaw);
+    //float actual_yaw = wrapDegrees180(getYaw() - initial_yaw);
+    //float error = getSignedDifference(DESIRED_YAW, actual_yaw);
+
+    //Implement filtering
+    float rawYaw = getYaw();
+    filteredYaw = alpha * rawYaw + (1-alpha) * filteredYaw;
+    // Get the Error for filtered
+    float actual_yaw = wrapDegrees180(filteredYaw - initial_yaw);
     float error = getSignedDifference(DESIRED_YAW, actual_yaw);
+
 
     // Basic
     pidIntegral += error * delta;
@@ -135,7 +151,7 @@ void updatePIDServo(bool print) { // Return if Loop is Active
 
     //// Left and Right
     // If Targetting a Specific yaw, and Once the W Starts impacting the Output, Stop
-    if ((DESIRED_YAW != 0.0f) & (std::abs(error) <= 5.0f)) {stop(); return;}
+    if ((DESIRED_YAW != 0.0f) && (std::abs(error) <= 5.0f)) {stop(); return;}
 
     // Forward
     float left = 100;
@@ -148,14 +164,32 @@ void updatePIDServo(bool print) { // Return if Loop is Active
         W *= -1; // Invert W
     }
 
+    //Clamp W
+    //if (W > 1.0f) W = 1.0f;
+    //if (W < -1.0f) W = -1.0f;
+
     // Implement from W
-    if (W > 0.0f) {right *= (1.0f - W);} // Value Positive (yawing too much left), Weaken Right Wheel. Else, Weaken Left Wheel
-    else {left *= (1.0f + W);}
+    //if (W > 0.0f) {right *= (1.0f - W);} // Value Positive (yawing too much left), Weaken Right Wheel. Else, Weaken Left Wheel
+    //else {left *= (1.0f + W);}
 
     // Cap the left and right speeds (so it can only affect ratios between -100% and 100% of the Wheel Speeds)
-    if (right > 100.0f) {right = 100.0f;} else if (right < -100.0f) {right = -100.0f;}
-    if (left > 100.0f) {left = 100.0f;} else if (left < -100.0f) {left = -100.0f;}
+    //if (right > 100.0f) {right = 100.0f;} else if (right < -100.0f) {right = -100.0f;}
+    //if (left > 100.0f) {left = 100.0f;} else if (left < -100.0f) {left = -100.0f;}
 
+    // Base wheel speed
+    float baseSpeed = GO_FORWARD ? 100.0f : -100.0f; // forward or backward
+
+    // Apply PID correction (W = -1 .. 1)
+    float leftSpeed  = baseSpeed - W * baseSpeed;
+    float rightSpeed = baseSpeed + W * baseSpeed;
+
+    // Clamp left speed
+    if (leftSpeed > 100.0f) leftSpeed = 100.0f;
+    else if (leftSpeed < -100.0f) leftSpeed = -100.0f;
+
+    // Clamp right speed
+    if (rightSpeed > 100.0f) rightSpeed = 100.0f;
+    else if (rightSpeed < -100.0f) rightSpeed = -100.0f;
     // Drive
     driveServo(left, right);
 

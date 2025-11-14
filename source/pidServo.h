@@ -31,9 +31,10 @@ void stopServo();
 
 //// PID
 // PID Coefficients
-const float Kp = 0.1f; // For every degree of offset Yaw, correct the wheel speed by (Kp*100)%
-const float Ki = 0.0f;
-const float Kd = 0.0f;
+#pragma once
+extern float Kp; // For every degree of offset Yaw, correct the wheel speed by (Kp*100)%
+extern float Ki;
+extern float Kd;
 
 // Helpers
 float getSmallestDifference(float current_angle, float target_angle);
