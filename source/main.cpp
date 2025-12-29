@@ -51,7 +51,7 @@ int main() {
     float print_start_time = uBit.systemTime() + PRINT_INTERVAL; // In msec
 
     // pidServo
-    float MAX_DRIVE_TIME = 2000.f; // In msec
+    float MAX_DRIVE_TIME = 5000.f; // In msec
     float start_drive_time; // In msec
 
     //// Init
