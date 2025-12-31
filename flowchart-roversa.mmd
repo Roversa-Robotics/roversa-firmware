@@ -1,0 +1,86 @@
+flowchart TD
+    Start["Start Program"]
+    Init["uBit.init()"]
+    SchedInit["scheduler_init<br/>messageBus"]
+    FiberSched["fiber_scheduler()<br/>//Listen for events"]
+
+    
+    Start --> Init
+    Init --> SchedInit
+    SchedInit --> FiberSched
+
+
+    
+    FiberSched -->|Button pressed| DirButton{Direction or<br/>Control Button?}
+    
+    DirButton -->|P13: Forward
+    P14: Reverse
+    P16: Left
+    P15: Right| InMenuCheck{In Menu<br/>Mode?}
+    DirButton -->|P5: Play| PlayCheck{Any actions<br/>in queue?}
+    DirButton -->|P9: Stop| InMenuMode{In Menu<br/>Mode?}
+    DirButton -->|P8: Menu| IncMenuPress["menu_press += 1"]
+    
+    InMenuCheck -->|Yes| NavigateMenu["Update menu_option<br/>based on button<br/><b>To be implemented</b>"]
+    InMenuCheck -->|No| UpdateQueue["updateQueue()<br/>Add F/B/L/R<br/>to actions list"]
+    
+    UpdateQueue --> Queue["Actions Queue<br/>max 50 commands"]
+    NavigateMenu --> MenuState["Menu State:<br/>menu_press, option<br/>menu_option_prev"]
+
+    PlayCheck -->|Yes| SetPauseState["Set pause_flag = 0<br/>Copy actions queue"]
+    PlayCheck -->|No| PlayCheck
+    
+    SetPauseState --> PlayLoop["playActions():<br/>Iterate queue"]
+    
+    PlayLoop --> ExecuteCmd{Execute<br/>Action}
+    ExecuteCmd -->|Forward| forward["forward(100,100)"]
+    ExecuteCmd -->|Reverse| reverse["reverse(100,100)"]
+    ExecuteCmd -->|Left Turn| left["left(100,100)"]
+    ExecuteCmd -->|Right Turn| right["right(100,100)"]
+    
+    forward --> WaitDrive["Sleep:<br/>1350ms (drive time)"]
+    reverse --> WaitDrive
+    left --> WaitTurn["Sleep:<br/>650ms"]
+    right --> WaitTurn["Sleep:<br/>650ms (turning time)"]
+    
+    subgraph Motors["Motor Control Layer"]
+        Forward/Reverse & Left/Right --> MapSpeed["Map 0-100 speed<br/>to servo angle"]
+        MapSpeed --> MotorP1["P1: Left Motor<br/>setServoValue"]
+        MapSpeed --> MotorP2["P2: Right Motor<br/>setServoValue"]
+    end
+    
+    
+    WaitDrive  --> DisplayArrow["Display arrow<br/>on LED matrix"] --> StopMotors["stop():<br/>GPIO low"]
+    WaitTurn  --> DisplayArrow 
+    
+    StopMotors --> NextAction{More<br/>actions?}
+    NextAction -->|Yes| ExecuteCmd
+    NextAction -->|No| CompletedQueue["Clear queue<br/>Reset pause_flag = -1"]
+    
+    CompletedQueue --> PauseFlag["Pause Flag<br/>-1: idle<br/>0: playing<br/>1: paused"]
+    
+
+    InMenuMode -->|Yes| ExitMenu["Reset menu:<br/>menu_press=0<br/>Clear display"]
+    InMenuMode -->|No| StopProgram["Stop motors<br/>Clear queue<br/>Reset pause_flag"]
+    
+    ExitMenu --> MenuState
+    StopProgram --> Queue
+    
+
+    IncMenuPress --> CheckMenuState{menu_press<br/>>=2?}
+    CheckMenuState -->|No| MenuState
+    CheckMenuState -->|Yes, even| DisplayMainMenu["Display Main Menu<br/>0=Lang, 1=Motors<br/>2=Distance, 3=Turn, 4=Vol"]
+    CheckMenuState -->|Yes, odd| SubmenuFlash["Flash display<br/>Entered submenu"]
+    
+    DisplayMainMenu --> MenuState
+    SubmenuFlash --> MenuState
+    
+    style Start fill:#e1f5e1
+    style MainLoop fill:#e3f2fd
+    style InMenuCheck fill:#fff3e0
+    style InMenuMode fill:#fff3e0
+    style Motors fill:#ede7f6
+    style PlayLoop fill:#fce4ec
+    style PauseFlag fill:#f3e5f5
+    style Queue fill:#f3e5f5
+    style MenuState fill:#e0f2f1
