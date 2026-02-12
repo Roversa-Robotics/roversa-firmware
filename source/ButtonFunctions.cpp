@@ -249,7 +249,7 @@ static void playHandler(MicroBitEvent){
 
 static void playActions(MicroBitEvent){
     MicroBitImage display_img;
-    unsigned long time;
+    unsigned long time = 100;
     while(*actions_copy!='\0' && pause_flag==0){ // only play actions if queue not empty, not paused
         switch(*actions_copy) {
             case 'F':

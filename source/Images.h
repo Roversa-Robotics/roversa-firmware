@@ -13,5 +13,6 @@ extern MicroBitImage motor_img;
 extern MicroBitImage distance_img;
 extern MicroBitImage turn_img;
 extern MicroBitImage volume_img;
+extern MicroBitImage happy_img;
 
 #endif
