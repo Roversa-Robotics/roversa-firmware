@@ -5,26 +5,55 @@ extern MicroBit uBit;
 
 
 //// IMU
-LSM6DS3Sensor accgyro(&uBit.i2c, 0x6A);
+LSM6DS3Sensor accgyro(&uBit.i2c, 0x6B);
 LIS3MDLSensor mag(&uBit.i2c, 0x1E);
+
+// Scan I2C bus for devices
+void scanI2CBus() {
+    uBit.serial.printf("Scanning I2C bus...\r\n");
+    int device_count = 0;
+    for (int address = 0x08; address <= 0x77; address++) {
+        // Try to read 1 byte from the device
+        uint8_t data;
+        int result = uBit.i2c.read(address << 1, &data, 1, false);
+        if (result == MICROBIT_OK) {
+            uBit.serial.printf("  Device found at decimal address: ");
+            uBit.serial.printf("%d", address);
+            uBit.serial.printf(" (hex: ");
+            uBit.serial.printf("%x", address);
+            uBit.serial.printf(")\\r\\n");
+            device_count++;
+        }
+    }
+    if (device_count == 0) {
+        uBit.serial.printf("  No I2C devices found on bus\\r\\n");
+    } else {
+        uBit.serial.printf("Total devices found: ");
+        uBit.serial.printf("%d\\r\\n", device_count);
+    }
+}
 
 // Setup
 void initIMU() {
     // NOTE: Below has not been failed before, TODO: Create an edgecase where it does fail
 
     // Gyroscope and Accelerometer
-    if (accgyro.begin() != 0) {
-        uBit.serial.printf("Accelerometer / Gyroscope initialization failed\r\n");
+    int accgyro_result = accgyro.begin();
+    if (accgyro_result != 0) {
+        uBit.serial.printf("Accelerometer / Gyroscope initialization failed. Code: %d (0x%X)\r\n", accgyro_result, accgyro_result);
         return;
     }
+    uBit.serial.printf("Accelerometer / Gyroscope initialized successfully\r\n");
     accgyro.Enable_X();
     accgyro.Enable_G();
 
     // Magnetometer
-    if (mag.begin() != 0) {
-        uBit.serial.printf("Magnetometer initialization failed\r\n");
+    int mag_result = mag.begin();
+    if (mag_result != 0) {
+        uBit.serial.printf("Magnetometer initialization failed. Code: %d (0x%X)\r\n", mag_result, mag_result);
         return;
     }
+    uBit.serial.printf("Magnetometer initialized successfully\r\n");
     mag.Enable_M();
 }
 

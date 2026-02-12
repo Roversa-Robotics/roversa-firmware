@@ -61,6 +61,7 @@ extern LSM6DS3Sensor accgyro;
 extern LIS3MDLSensor mag;
 
 // Setup
+void scanI2CBus();
 void initIMU();
 
 // Operations

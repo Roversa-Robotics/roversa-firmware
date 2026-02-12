@@ -3,10 +3,23 @@
 #include "servoRoversa.h"
 #include "Buttons.h"
 #include "Images.h"
+#include "imuFusion.h"
+
+#include <cmath>
 
 #define DRIVE_TIME 1350
 #define TURN_TIME 650
 #define ACTIONS_LIMIT 50 //hold up to 50 actions
+
+static const int BASE_FORWARD_SPEED = 80;
+static const int MAX_SPEED = 100;
+static const int MIN_SPEED = 0;
+static const int MAX_CORRECTION = 30;
+static const float PID_KP = 1.0f;
+static const float PID_KI = 0.0f;
+static const float PID_KD = 0.1f;
+static const float INTEGRAL_LIMIT = 100.0f;
+static const float YAW_CORRECTION_SIGN = -1.0f;
 
 /*  
     * actions like a queue of commands: each char is either forward ('F'), reverse ('B'), turn left ('L'), or turn right ('R').
@@ -28,6 +41,10 @@ char * actions_copy;
         (play button pressed again, pausing execution in playActions())
  */
 int pause_flag=-1;
+
+static float pid_target_yaw = 0.0f;
+static float pid_integral = 0.0f;
+static float pid_prev_error = 0.0f;
 
 
 /* menu tracking
@@ -95,6 +112,74 @@ static void submenuDisplay(){
         uBit.sleep(400);
     }
     uBit.display.setBrightness(75);
+}
+
+static int clampInt(int value, int min_value, int max_value) {
+    if (value < min_value) {
+        return min_value;
+    }
+    if (value > max_value) {
+        return max_value;
+    }
+    return value;
+}
+
+static float normalizeAngle(float angle) {
+    while (angle > 180.0f) {
+        angle -= 360.0f;
+    }
+    while (angle < -180.0f) {
+        angle += 360.0f;
+    }
+    return angle;
+}
+
+static void resetHeadingHold() {
+    pid_target_yaw = getYaw();
+    pid_integral = 0.0f;
+    pid_prev_error = 0.0f;
+}
+
+static void applyHeadingHold(int base_speed) {
+    float current_yaw = getYaw();
+    float error = normalizeAngle(pid_target_yaw - current_yaw);
+    float dt = getDelta();
+    if (dt <= 0.0f) {
+        dt = 0.01f;
+    }
+
+    pid_integral += error * dt;
+    if (pid_integral > INTEGRAL_LIMIT) {
+        pid_integral = INTEGRAL_LIMIT;
+    } else if (pid_integral < -INTEGRAL_LIMIT) {
+        pid_integral = -INTEGRAL_LIMIT;
+    }
+
+    float derivative = (error - pid_prev_error) / dt;
+    pid_prev_error = error;
+
+    float output = (PID_KP * error) + (PID_KI * pid_integral) + (PID_KD * derivative);
+    output *= YAW_CORRECTION_SIGN; // Flip if corrections steer the wrong direction.
+
+    if (output > MAX_CORRECTION) {
+        output = MAX_CORRECTION;
+    } else if (output < -MAX_CORRECTION) {
+        output = -MAX_CORRECTION;
+    }
+
+    int correction = static_cast<int>(std::lround(output));
+    int left_speed = clampInt(base_speed + correction, MIN_SPEED, MAX_SPEED);
+    int right_speed = clampInt(base_speed - correction, MIN_SPEED, MAX_SPEED);
+    forward(left_speed, right_speed);
+}
+
+static void driveForwardWithHeadingHold(unsigned long duration_ms) {
+    
+    unsigned long start_time = uBit.systemTime();
+    while ((uBit.systemTime() - start_time) < duration_ms && pause_flag == 0) {
+        applyHeadingHold(BASE_FORWARD_SPEED);
+        fiber_sleep(10);
+    }
 }
 
 static void updateQueue(int pin){
@@ -250,12 +335,15 @@ static void playHandler(MicroBitEvent){
 static void playActions(MicroBitEvent){
     MicroBitImage display_img;
     unsigned long time = 100;
+    // I want to hold the heading after each turn,
+    // so reset the PID controller's target and integral/derivative terms at the start of the play sequence.
+    resetHeadingHold();
     while(*actions_copy!='\0' && pause_flag==0){ // only play actions if queue not empty, not paused
         switch(*actions_copy) {
             case 'F':
-                forward(100,100);
                 display_img = forward_arrow;
-                time = DRIVE_TIME;
+                //time = DRIVE_TIME;
+                time = 3000;
                 break;
             case 'B':
                 reverse(100,100);
@@ -266,15 +354,26 @@ static void playActions(MicroBitEvent){
                 left(100,100);
                 display_img =left_arrow;
                 time = TURN_TIME;
+                resetHeadingHold();
                 break;
             case 'R':
                 right(100,100);
                 display_img = right_arrow;
                 time = TURN_TIME;
+                resetHeadingHold();
+                //print 
+                uBit.serial.printf("Turned right, new target yaw: %.2f\n", pid_target_yaw);
                 break;
         }
+        // This is new. I would like to add it inside the case switch, but will leave it here for now 
+        //to avoid any issues with the timing of the display vs motor commands.
+        //  If it works well, can consider moving into each case in the future.
         uBit.display.print(display_img);
-        fiber_sleep(time);
+        if (*actions_copy == 'F') {
+            driveForwardWithHeadingHold(time);
+        } else {
+            fiber_sleep(time);
+        }
         stop();
         uBit.display.clear();
         actions_copy+=1; //iterate through commands
